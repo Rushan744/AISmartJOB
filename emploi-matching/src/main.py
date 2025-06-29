@@ -71,8 +71,11 @@ def main():
     print(f"Scraped data: {scraped_data}")
 
     # Load candidate data from CSV
-    candidates_df = pd.read_csv('D:\Smartjob_working_withfastapi\emploi-matching\data\candidats.csv')
+    csv_path = 'D:/Smartjob_working_withfastapi/emploi-matching/data/candidats.csv'
+    print(f"Attempting to read candidates from CSV: {csv_path}")
+    candidates_df = pd.read_csv(csv_path)
     candidates = candidates_df.to_dict('records')
+    print(f"Successfully read {len(candidates)} candidates from CSV.")
 
     # Clear and insert data into SQLite jobs table
     # Combine data from web scraping and adzuna api
@@ -129,26 +132,47 @@ def main():
     session.query(Match).delete()
     session.commit()
 
-    # Old matching logic (commented out as per new requirements)
-    # for candidate in candidates:
-    #     # Create Candidate object and add to session
-    #     new_candidate = Candidate(id=candidate['id'], nom=candidate['nom'], email=candidate['email'], compétences=candidate['compétences'], expérience=candidate['expérience'], localisation=candidate['localisation'], secteur=candidate['secteur'])
-    #     session.add(new_candidate)
-    #     session.commit()
+    # New matching logic using AI model
+    for candidate_data in candidates:
+        # Create Candidate object and add to session
+        new_candidate = Candidate(
+            id=candidate_data['id'],
+            nom=candidate_data['nom'],
+            email=candidate_data['email'],
+            compétences=candidate_data['compétences'],
+            expérience=candidate_data['expérience'],
+            localisation=candidate_data['localisation'],
+            secteur=candidate_data['secteur']
+        )
+        session.add(new_candidate)
+        try:
+            session.commit()
+            print(f"Inserted candidate: {new_candidate.nom} (ID: {new_candidate.id})")
+        except Exception as e:
+            session.rollback()
+            print(f"Error inserting candidate {new_candidate.nom}: {e}")
 
-    #     for job in normalized_jobs: # Use normalized_jobs here
-    #         score = match_job_to_candidate(job, candidate)
-    #         print(f"Matching score: {score}")
+        for job_data in normalized_jobs: # Use normalized_jobs here
+            score = match_job_to_candidate(job_data, candidate_data)
+            print(f"Matching score for {candidate_data['nom']} and {job_data['title']}: {score}")
 
-    #         # Add match to SQLite only if score is above threshold
-    #         if score > 0:
-    #             # Find the Job object in the database
-    #             # Use normalized 'company' and 'location' for filtering
-    #             db_job = session.query(Job).filter_by(title=job['title'], company=job['company'], location=job['location']).first()
-    #             if db_job:
-    #                 new_match = Match(job_id=db_job.id, candidate_id=new_candidate.id, score=score)
-    #                 session.add(new_match)
-    #                 session.commit()
+            # Find the Job object in the database
+            db_job = session.query(Job).filter_by(
+                title=job_data['title'],
+                company=job_data['company'],
+                location=job_data['location']
+            ).first()
+            
+            if db_job:
+                new_match = Match(job_id=db_job.id, candidate_id=new_candidate.id, score=score)
+                session.add(new_match)
+                session.commit()
+            else:
+                print(f"Warning: Job '{job_data['title']}' not found in DB for matching. Match not saved.")
+    
+    # Verify candidates in DB after insertion
+    num_candidates_in_db = session.query(Candidate).count()
+    print(f"Total candidates in database after insertion: {num_candidates_in_db}")
 
 if __name__ == '__main__':
     main()

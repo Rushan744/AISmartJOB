@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, APIRouter
+from fastapi import FastAPI, Depends, HTTPException, APIRouter, UploadFile, File
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -6,7 +6,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
-from .ai_recommender import get_ai_recommendations
+from .ai_recommender import get_ai_recommendations, get_ai_recommendations_from_cv
+from .pdf_extractor import extract_text_from_pdf
 
 # Database setup
 Base = declarative_base()
@@ -57,6 +58,10 @@ class Match(BaseModel):
     job_id: int
     candidate_id: int
     score: float
+
+class CVRecommendationResponse(BaseModel):
+    recommended_jobs: List[Job]
+    career_recommendation_text: str
 
 engine = create_engine('sqlite:///emploi.db')
 Base.metadata.create_all(engine)
@@ -150,5 +155,47 @@ def get_recommendations_for_candidate(
     
     print(f"Returning {len(response_jobs)} jobs in API response.")
     return response_jobs
+
+@ai_router.post("/recommend_from_cv/", response_model=CVRecommendationResponse)
+async def recommend_jobs_from_cv(
+    cv_file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user)
+):
+    if not cv_file.filename.endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+
+    try:
+        cv_content = await cv_file.read()
+        cv_text = extract_text_from_pdf(cv_content)
+        
+        if not cv_text.strip():
+            raise HTTPException(status_code=400, detail="Could not extract text from PDF. The PDF might be empty or image-based.")
+
+        # Retrieve all jobs
+        all_jobs_db = db.query(JobDB).all()
+        all_jobs_list = [
+            {"id": job.id, "title": job.title, "company": job.company, "location": job.location, "description": job.description}
+            for job in all_jobs_db
+        ]
+        if not all_jobs_list:
+            raise HTTPException(status_code=404, detail="No jobs found in database to recommend from.")
+
+        recommended_jobs_data, career_recommendation_text = get_ai_recommendations_from_cv(cv_text, all_jobs_list)
+
+        response_jobs = []
+        for job_data in recommended_jobs_data:
+            response_jobs.append(Job(**job_data))
+        
+        return CVRecommendationResponse(
+            recommended_jobs=response_jobs,
+            career_recommendation_text=career_recommendation_text
+        )
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        print(f"Error in recommend_jobs_from_cv: {e}")
+        raise HTTPException(status_code=500, detail=f"An internal server error occurred: {e}")
 
 app.include_router(ai_router)

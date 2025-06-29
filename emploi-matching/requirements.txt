@@ -6,3 +6,5 @@ pymongo
 sqlalchemy
 fastapi
 faker
+PyPDF2
+python-multipart

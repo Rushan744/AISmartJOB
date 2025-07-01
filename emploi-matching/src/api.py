@@ -6,6 +6,8 @@ from typing import List
 from pydantic import BaseModel
 from .ai_recommender import get_ai_recommendations, get_ai_recommendations_from_cv, extract_skills_with_scores_from_cv
 from .pdf_extractor import extract_text_from_pdf
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
 
 # Database setup
 Base = declarative_base()
@@ -253,3 +255,11 @@ async def extract_skills_from_cv_endpoint(
         raise HTTPException(status_code=500, detail=f"Une erreur interne du serveur s'est produite : {e}")
 
 app.include_router(ai_router)
+
+# Serve static files (your frontend)
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+@app.get("/", response_class=HTMLResponse, summary="Servir la page d'accueil du frontend", description="Accède à la page HTML principale de l'application frontend.")
+async def read_root():
+    with open("frontend/index.html", "r") as f:
+        return HTMLResponse(content=f.read())

@@ -34,17 +34,58 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    loginButton.addEventListener('click', () => {
+    loginButton.addEventListener('click', async () => {
         const username = usernameInput.value;
         const password = passwordInput.value;
         const credentials = btoa(`${username}:${password}`); // Base64 encode
-        
-        // For simplicity, we're just storing the token directly.
-        // In a real app, you'd send these to a /token endpoint and get a JWT.
-        authToken = credentials;
-        localStorage.setItem('authToken', authToken);
-        checkLoginStatus();
-        loginError.classList.add('d-none'); // Hide any previous errors
+
+        try {
+            // Attempt to log in by fetching user data (requires authentication)
+            const loginResponse = await fetch(`${API_BASE_URL}/users/`, {
+                method: 'GET',
+                headers: {
+                    'accept': 'application/json',
+                    'Authorization': `Basic ${credentials}`
+                }
+            });
+
+            if (loginResponse.ok) {
+                authToken = credentials;
+                localStorage.setItem('authToken', authToken);
+                checkLoginStatus();
+                loginError.classList.add('d-none');
+            } else if (loginResponse.status === 401) {
+                // If login fails (401 Unauthorized), try to create the user
+                const createUserResponse = await fetch(`${API_BASE_URL}/users/`, {
+                    method: 'POST',
+                    headers: {
+                        'accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (createUserResponse.ok) {
+                    // User created successfully, now log in
+                    authToken = credentials;
+                    localStorage.setItem('authToken', authToken);
+                    checkLoginStatus();
+                    loginError.classList.add('d-none');
+                } else {
+                    const errorData = await createUserResponse.json();
+                    loginError.textContent = errorData.detail || 'Failed to create user.';
+                    loginError.classList.remove('d-none');
+                }
+            } else {
+                const errorData = await loginResponse.json();
+                loginError.textContent = errorData.detail || 'Login failed.';
+                loginError.classList.remove('d-none');
+            }
+        } catch (error) {
+            console.error('Login/User creation error:', error);
+            loginError.textContent = `An unexpected error occurred: ${error.message}`;
+            loginError.classList.remove('d-none');
+        }
     });
 
     uploadCvButton.addEventListener('click', async () => {

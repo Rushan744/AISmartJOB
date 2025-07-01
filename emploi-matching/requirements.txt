@@ -8,3 +8,4 @@ fastapi
 faker
 PyPDF2
 python-multipart
+passlib[bcrypt]

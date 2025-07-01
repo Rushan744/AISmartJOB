@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, APIRouter, UploadFile, File
+from fastapi import FastAPI, Depends, HTTPException, APIRouter, UploadFile, File, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 from sqlalchemy.orm import sessionmaker, Session, declarative_base
@@ -8,9 +8,18 @@ from .ai_recommender import get_ai_recommendations, get_ai_recommendations_from_
 from .pdf_extractor import extract_text_from_pdf
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
+from passlib.context import CryptContext
 
 # Database setup
 Base = declarative_base()
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+class UserDB(Base):
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
 
 class JobDB(Base):
     __tablename__ = 'jobs'
@@ -66,6 +75,14 @@ class SkillScore(BaseModel):
 class SkillsExtractionResponse(BaseModel):
     extracted_skills: List[SkillScore]
 
+class UserCreate(BaseModel):
+    username: str
+    password: str
+
+class User(BaseModel):
+    id: int
+    username: str
+
 class CVRecommendationResponse(BaseModel):
     recommended_jobs: List[Job]
     career_recommendation_text: str
@@ -75,19 +92,6 @@ Base.metadata.create_all(engine)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-app = FastAPI()
-
-# Security
-security = HTTPBasic()
-
-def get_current_user(credentials: HTTPBasicCredentials = Depends(security)):
-    if credentials.username == "admin" and credentials.password == "admin":
-        return credentials.username
-    elif credentials.username == "user" and credentials.password == "user":
-        return credentials.username
-    else:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-
 # Dependency
 def get_db():
     db = SessionLocal()
@@ -95,6 +99,32 @@ def get_db():
         yield db
     finally:
         db.close()
+
+app = FastAPI()
+
+
+
+# Security
+security = HTTPBasic()
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+def get_user(db: Session, username: str):
+    return db.query(UserDB).filter(UserDB.username == username).first()
+
+def get_current_user(credentials: HTTPBasicCredentials = Depends(security), db: Session = Depends(get_db)):
+    user = get_user(db, credentials.username)
+    if not user or not verify_password(credentials.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return user
 
 # Main Endpoints
 @app.get(
@@ -104,7 +134,7 @@ def get_db():
     description="Récupère la liste de toutes les offres d'emploi enregistrées dans la base de données. Requiert une authentification (utilisateur ou administrateur).",
     tags=["ETL"]
 )
-def read_jobs(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+def read_jobs(db: Session = Depends(get_db), current_user: UserDB = Depends(get_current_user)):
     jobs = db.query(JobDB).all()
     return [Job(id=job.id, title=job.title, company=job.company, location=job.location, description=job.description) for job in jobs]
 
@@ -115,7 +145,7 @@ def read_jobs(db: Session = Depends(get_db), current_user: str = Depends(get_cur
     description="Récupère la liste de tous les candidats enregistrés dans la base de données. Requiert une authentification (utilisateur ou administrateur).",
     tags=["ETL"]
 )
-def read_candidates(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+def read_candidates(db: Session = Depends(get_db), current_user: UserDB = Depends(get_current_user)):
     candidates = db.query(CandidateDB).all()
     return [Candidate(id=candidate.id, nom=candidate.nom, email=candidate.email, compétences=candidate.compétences, expérience=candidate.expérience, localisation=candidate.localisation, secteur=candidate.secteur) for candidate in candidates]
 
@@ -126,9 +156,43 @@ def read_candidates(db: Session = Depends(get_db), current_user: str = Depends(g
     description="Récupère la liste de toutes les correspondances entre les offres d'emploi et les candidats. Requiert une authentification (utilisateur ou administrateur).",
     tags=["ETL"]
 )
-def read_matches(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+def read_matches(db: Session = Depends(get_db), current_user: UserDB = Depends(get_current_user)):
     matches = db.query(MatchDB).all()
     return [Match(id=match.id, job_id=match.job_id, candidate_id=match.candidate_id, score=match.score) for match in matches]
+
+# User Management Endpoints
+user_router = APIRouter(prefix="/users", tags=["User Management"])
+
+@user_router.post(
+    "/",
+    response_model=User,
+    summary="Créer un nouvel utilisateur",
+    description="Enregistre un nouvel utilisateur avec un nom d'utilisateur et un mot de passe haché. Accessible à tous.",
+    status_code=status.HTTP_201_CREATED
+)
+def create_user(user: UserCreate, db: Session = Depends(get_db)):
+    db_user = get_user(db, username=user.username)
+    if db_user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already registered")
+    
+    hashed_password = get_password_hash(user.password)
+    db_user = UserDB(username=user.username, hashed_password=hashed_password)
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return User(id=db_user.id, username=db_user.username)
+
+@user_router.get(
+    "/",
+    response_model=List[User],
+    summary="Récupérer tous les utilisateurs",
+    description="Récupère la liste de tous les utilisateurs enregistrés. Requiert une authentification (administrateur uniquement).",
+)
+def read_users(db: Session = Depends(get_db), current_user: UserDB = Depends(get_current_user)):
+    if current_user.username != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admin can view all users")
+    users = db.query(UserDB).all()
+    return [User(id=user.id, username=user.username) for user in users]
 
 # AI SmartJob Endpoints
 ai_router = APIRouter(prefix="/ai_smartjob", tags=["AI SmartJob"])
@@ -143,7 +207,7 @@ ai_router = APIRouter(prefix="/ai_smartjob", tags=["AI SmartJob"])
 def get_recommendations_for_candidate(
     nom_candidat: str,
     db: Session = Depends(get_db),
-    current_user: str = Depends(get_current_user)
+    current_user: UserDB = Depends(get_current_user)
 ):
     # Récupérer les informations du candidat
     candidate_db = db.query(CandidateDB).filter(CandidateDB.nom == nom_candidat).first()
@@ -187,7 +251,7 @@ def get_recommendations_for_candidate(
 async def recommend_jobs_from_cv(
     fichier_cv: UploadFile = File(..., description="Le fichier PDF du CV à télécharger."),
     db: Session = Depends(get_db),
-    current_user: str = Depends(get_current_user)
+    current_user: UserDB = Depends(get_current_user)
 ):
     if not fichier_cv.filename.endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Seuls les fichiers PDF sont supportés.")
@@ -233,7 +297,7 @@ async def recommend_jobs_from_cv(
 )
 async def extract_skills_from_cv_endpoint(
     fichier_cv: UploadFile = File(..., description="Le fichier PDF du CV à télécharger."),
-    current_user: str = Depends(get_current_user)
+    current_user: UserDB = Depends(get_current_user)
 ):
     if not fichier_cv.filename.endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Seuls les fichiers PDF sont supportés.")
@@ -254,6 +318,7 @@ async def extract_skills_from_cv_endpoint(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Une erreur interne du serveur s'est produite : {e}")
 
+app.include_router(user_router)
 app.include_router(ai_router)
 
 # Serve static files (your frontend)

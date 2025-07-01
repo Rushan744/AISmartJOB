@@ -326,5 +326,5 @@ app.mount("/static", StaticFiles(directory="frontend"), name="static")
 
 @app.get("/", response_class=HTMLResponse, summary="Servir la page d'accueil du frontend", description="Accède à la page HTML principale de l'application frontend.")
 async def read_root():
-    with open("frontend/index.html", "r") as f:
-        return HTMLResponse(content=f.read())
+    with open("frontend/index.html", "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read(), media_type="text/html; charset=utf-8")

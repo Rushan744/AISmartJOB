@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI SmartJob - CV Analyzer</title>
+    <title>AI SmartJob - Analyseur de CV</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
@@ -32,49 +32,49 @@
 </head>
 <body>
     <div class="container">
-        <!-- Login Section -->
+        <!-- Section de Connexion -->
         <div id="login-section">
-            <h2 class="text-center mb-4">Login</h2>
+            <h2 class="text-center mb-4">Connexion</h2>
             <div class="mb-3">
-                <label for="username" class="form-label">Username</label>
+                <label for="username" class="form-label">Nom d'utilisateur</label>
                 <input type="text" class="form-control" id="username" value="user">
             </div>
             <div class="mb-3">
-                <label for="password" class="form-label">Password</label>
+                <label for="password" class="form-label">Mot de passe</label>
                 <input type="password" class="form-control" id="password" value="user">
             </div>
-            <button type="button" class="btn btn-primary w-100" id="login-button">Login</button>
+            <button type="button" class="btn btn-primary w-100" id="login-button">Se connecter</button>
             <div id="login-error" class="alert alert-danger mt-3 d-none"></div>
         </div>
 
-        <!-- Main Application Section -->
+        <!-- Section Principale de l'Application -->
         <div id="main-app-section">
-            <h1 class="text-center mb-4">AI SmartJob - CV Analyzer</h1>
+            <h1 class="text-center mb-4">AI SmartJob - Analyseur de CV</h1>
 
             <div class="card">
                 <div class="card-header">
-                    Upload CV
+                    Télécharger un CV
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <label for="cvFile" class="form-label">Select CV (PDF only)</label>
+                        <label for="cvFile" class="form-label">Sélectionner un CV (PDF uniquement)</label>
                         <input class="form-control" type="file" id="cvFile" accept=".pdf">
                     </div>
-                    <button type="button" class="btn btn-success" id="uploadCvButton">Analyze CV</button>
+                    <button type="button" class="btn btn-success" id="uploadCvButton">Analyser le CV</button>
                     <div id="upload-status" class="mt-3"></div>
                 </div>
             </div>
 
             <div class="card">
                 <div class="card-header">
-                    Job Recommendations
+                    Recommandations d'emploi
                 </div>
                 <div class="card-body">
                     <div id="recommendations-loading" class="text-center d-none">
                         <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
+                            <span class="visually-hidden">Chargement...</span>
                         </div>
-                        <p>Generating job recommendations...</p>
+                        <p>Génération des recommandations d'emploi...</p>
                     </div>
                     <div id="recommendations-error" class="alert alert-danger d-none"></div>
                     <div id="recommendations-results">
@@ -82,14 +82,14 @@
                         <table class="table table-striped" id="job-recommendations-table">
                             <thead>
                                 <tr>
-                                    <th>Title</th>
-                                    <th>Company</th>
-                                    <th>Location</th>
+                                    <th>Titre</th>
+                                    <th>Entreprise</th>
+                                    <th>Localisation</th>
                                     <th>Description</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <!-- Job recommendations will be inserted here -->
+                                <!-- Les recommandations d'emploi seront insérées ici -->
                             </tbody>
                         </table>
                     </div>
@@ -98,18 +98,18 @@
 
             <div class="card">
                 <div class="card-header">
-                    Extracted Skills
+                    Compétences extraites
                 </div>
                 <div class="card-body">
                     <div id="skills-loading" class="text-center d-none">
                         <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
+                            <span class="visually-hidden">Chargement...</span>
                         </div>
-                        <p>Extracting skills...</p>
+                        <p>Extraction des compétences...</p>
                     </div>
                     <div id="skills-error" class="alert alert-danger d-none"></div>
                     <div id="skills-chart">
-                        <!-- Plotly chart will be rendered here -->
+                        <!-- Le graphique Plotly sera rendu ici -->
                     </div>
                 </div>
             </div>

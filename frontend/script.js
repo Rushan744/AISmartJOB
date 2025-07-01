@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const skillsError = document.getElementById('skills-error');
     const skillsChart = document.getElementById('skills-chart');
 
-    const API_BASE_URL = 'http://127.0.0.1:8000'; // Adjust if your FastAPI runs on a different port/host
+    const API_BASE_URL = 'http://127.0.0.1:8000'; // Ajustez si votre FastAPI s'exécute sur un port/hôte différent
 
     let authToken = localStorage.getItem('authToken');
 
@@ -37,10 +37,10 @@ document.addEventListener('DOMContentLoaded', () => {
     loginButton.addEventListener('click', async () => {
         const username = usernameInput.value;
         const password = passwordInput.value;
-        const credentials = btoa(`${username}:${password}`); // Base64 encode
+        const credentials = btoa(`${username}:${password}`); // Encodage Base64
 
         try {
-            // Attempt to log in by fetching user data (requires authentication)
+            // Tenter de se connecter en récupérant les données utilisateur (nécessite une authentification)
             const loginResponse = await fetch(`${API_BASE_URL}/users/`, {
                 method: 'GET',
                 headers: {
@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 checkLoginStatus();
                 loginError.classList.add('d-none');
             } else if (loginResponse.status === 401) {
-                // If login fails (401 Unauthorized), try to create the user
+                // Si la connexion échoue (401 Non autorisé), essayer de créer l'utilisateur
                 const createUserResponse = await fetch(`${API_BASE_URL}/users/`, {
                     method: 'POST',
                     headers: {
@@ -66,24 +66,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (createUserResponse.ok) {
-                    // User created successfully, now log in
+                    // Utilisateur créé avec succès, maintenant se connecter
                     authToken = credentials;
                     localStorage.setItem('authToken', authToken);
                     checkLoginStatus();
                     loginError.classList.add('d-none');
                 } else {
                     const errorData = await createUserResponse.json();
-                    loginError.textContent = errorData.detail || 'Failed to create user.';
+                    loginError.textContent = errorData.detail || 'Échec de la création de l\'utilisateur.';
                     loginError.classList.remove('d-none');
                 }
             } else {
                 const errorData = await loginResponse.json();
-                loginError.textContent = errorData.detail || 'Login failed.';
+                loginError.textContent = errorData.detail || 'Échec de la connexion.';
                 loginError.classList.remove('d-none');
             }
         } catch (error) {
-            console.error('Login/User creation error:', error);
-            loginError.textContent = `An unexpected error occurred: ${error.message}`;
+            console.error('Erreur de connexion/création d\'utilisateur :', error);
+            loginError.textContent = `Une erreur inattendue s'est produite : ${error.message}`;
             loginError.classList.remove('d-none');
         }
     });
@@ -91,15 +91,15 @@ document.addEventListener('DOMContentLoaded', () => {
     uploadCvButton.addEventListener('click', async () => {
         const file = cvFile.files[0];
         if (!file) {
-            uploadStatus.innerHTML = '<div class="alert alert-warning">Please select a PDF file.</div>';
+            uploadStatus.innerHTML = '<div class="alert alert-warning">Veuillez sélectionner un fichier PDF.</div>';
             return;
         }
         if (file.type !== 'application/pdf') {
-            uploadStatus.innerHTML = '<div class="alert alert-warning">Only PDF files are supported.</div>';
+            uploadStatus.innerHTML = '<div class="alert alert-warning">Seuls les fichiers PDF sont supportés.</div>';
             return;
         }
 
-        uploadStatus.innerHTML = ''; // Clear previous status
+        uploadStatus.innerHTML = ''; // Effacer le statut précédent
         recommendationsError.classList.add('d-none');
         skillsError.classList.add('d-none');
         jobRecommendationsTableBody.innerHTML = '';
@@ -118,35 +118,35 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            // Call recommend_from_cv API
+            // Appeler l'API recommend_from_cv
             const recommendResponse = await fetch(`${API_BASE_URL}/ai_smartjob/recommend_from_cv/`, {
                 method: 'POST',
                 headers: headers,
-                body: formData // FormData handles Content-Type for multipart
+                body: formData // FormData gère Content-Type pour multipart
             });
 
             if (!recommendResponse.ok) {
                 const errorData = await recommendResponse.json();
-                throw new Error(errorData.detail || `HTTP error! status: ${recommendResponse.status}`);
+                throw new Error(errorData.detail || `Erreur HTTP ! statut : ${recommendResponse.status}`);
             }
 
             const recommendData = await recommendResponse.json();
             displayJobRecommendations(recommendData.recommended_jobs, recommendData.career_recommendation_text);
 
         } catch (error) {
-            console.error('Error recommending jobs from CV:', error);
-            recommendationsError.textContent = `Error: ${error.message}`;
+            console.error('Erreur lors de la recommandation d\'emplois à partir du CV :', error);
+            recommendationsError.textContent = `Erreur : ${error.message}`;
             recommendationsError.classList.remove('d-none');
         } finally {
             recommendationsLoading.classList.add('d-none');
         }
 
-        // Re-create FormData for the second request as it's consumed by the first
+        // Recréer FormData pour la deuxième requête car il est consommé par la première
         const formDataSkills = new FormData();
         formDataSkills.append('fichier_cv', file);
 
         try {
-            // Call extract_skills_from_cv API
+            // Appeler l'API extract_skills_from_cv
             const skillsResponse = await fetch(`${API_BASE_URL}/ai_smartjob/extract_skills_from_cv/`, {
                 method: 'POST',
                 headers: headers,
@@ -155,15 +155,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!skillsResponse.ok) {
                 const errorData = await skillsResponse.json();
-                throw new Error(errorData.detail || `HTTP error! status: ${skillsResponse.status}`);
+                throw new Error(errorData.detail || `Erreur HTTP ! statut : ${skillsResponse.status}`);
             }
 
             const skillsData = await skillsResponse.json();
             displayExtractedSkills(skillsData.extracted_skills);
 
         } catch (error) {
-            console.error('Error extracting skills from CV:', error);
-            skillsError.textContent = `Error: ${error.message}`;
+            console.error('Erreur lors de l\'extraction des compétences du CV :', error);
+            skillsError.textContent = `Erreur : ${error.message}`;
             skillsError.classList.remove('d-none');
         } finally {
             skillsLoading.classList.add('d-none');
@@ -171,10 +171,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const displayJobRecommendations = (jobs, careerText) => {
-        careerRecommendationText.innerHTML = `<strong>Career Recommendation:</strong><br>${careerText}`;
-        jobRecommendationsTableBody.innerHTML = ''; // Clear previous results
+        careerRecommendationText.innerHTML = `<strong>Recommandation de carrière :</strong><br>${careerText}`;
+        jobRecommendationsTableBody.innerHTML = ''; // Effacer les résultats précédents
         if (jobs.length === 0) {
-            jobRecommendationsTableBody.innerHTML = '<tr><td colspan="4">No job recommendations found.</td></tr>';
+            jobRecommendationsTableBody.innerHTML = '<tr><td colspan="4">Aucune recommandation d\'emploi trouvée.</td></tr>';
             return;
         }
         jobs.forEach(job => {
@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const displayExtractedSkills = (skills) => {
         if (skills.length === 0) {
-            skillsChart.innerHTML = '<div class="alert alert-info">No skills extracted.</div>';
+            skillsChart.innerHTML = '<div class="alert alert-info">Aucune compétence extraite.</div>';
             return;
         }
 
@@ -205,20 +205,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }];
 
         const layout = {
-            title: 'Extracted Skills from CV',
+            title: 'Compétences extraites du CV',
             xaxis: {
-                title: 'Skill'
+                title: 'Compétence'
             },
             yaxis: {
                 title: 'Score (0-100)',
                 range: [0, 100]
             },
-            margin: { t: 50, b: 100 } // Adjust margins to prevent labels from being cut off
+            margin: { t: 50, b: 100 } // Ajuster les marges pour éviter que les étiquettes ne soient coupées
         };
 
         Plotly.newPlot('skills-chart', data, layout);
     };
 
-    // Initial check on page load
+    // Vérification initiale au chargement de la page
     checkLoginStatus();
 });

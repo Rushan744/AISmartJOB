@@ -1,5 +1,6 @@
 import requests
 import json
+import re
 
 OLLAMA_API_URL = "http://localhost:11434/api/generate"
 
@@ -143,29 +144,74 @@ def get_ai_recommendations_from_cv(cv_text: str, all_jobs: list):
         career_recommendation_text = ""
 
         # Parse the generated text
-        sections = generated_text.split('Recommandation de Carrière:')
-        if len(sections) > 1:
-            job_section = sections[0]
-            career_recommendation_text = sections[1].strip()
+        career_recommendation_text = ""
+        job_section_raw = generated_text # Initialize with full text
 
-            # Extract job titles from the job section
-            for line in job_section.split('\n'):
-                line = line.strip()
-                if line.startswith(('1.', '2.', '3.')) and 'Jobs Recommandés:' in job_section:
-                    title = line.split('.', 1)[1].strip()
-                    recommended_titles.append(title)
+        # First, try to extract the career recommendation text by splitting at its header
+        parts_by_career_header = generated_text.split("Recommandation de Carrière:", 1)
+        if len(parts_by_career_header) > 1:
+            job_section_raw = parts_by_career_header[0] # Content before career recommendation
+            career_recommendation_text = parts_by_career_header[1].strip() # Actual career recommendation text
         else:
-            # Fallback if sections are not clearly separated, try to find titles directly
-            for line in generated_text.split('\n'):
-                line = line.strip()
-                if line.startswith(('1.', '2.', '3.')):
-                    title = line.split('.', 1)[1].strip()
-                    recommended_titles.append(title)
-            # Assume the rest is career recommendation if no clear separator
-            if "Recommandation de Carrière:" in generated_text:
-                career_recommendation_text = generated_text.split("Recommandation de Carrière:", 1)[1].strip()
-            else:
-                career_recommendation_text = generated_text.strip() # Take all if no specific section
+            # If "Recommandation de Carrière:" header is not found, assume the entire text is the recommendation
+            # and we will try to extract jobs from it.
+            career_recommendation_text = generated_text.strip()
+
+        # --- Robust Job Title Extraction ---
+        available_job_titles = [job.get('title', '').strip().lower() for job in all_jobs]
+        found_titles_from_ai = []
+
+        # Strategy 1: Look for explicit numbered/bulleted lists in the *entire* generated text
+        # This is because the AI might put the list anywhere.
+        list_pattern = re.compile(r'^\s*(?:\d+\.|\-)\s*(.+)$', re.MULTILINE)
+        for match in list_pattern.finditer(generated_text):
+            extracted_title_candidate = match.group(1).strip()
+            # Check if this extracted title is close to any actual job title
+            for actual_title in available_job_titles:
+                if actual_title in extracted_title_candidate.lower() or extracted_title_candidate.lower() in actual_title:
+                    found_titles_from_ai.append(actual_title)
+                    break
+        
+        # Strategy 2: Look for embedded job titles within the text, matching against available job titles
+        # This is a more general approach if the AI doesn't follow the list format.
+        for actual_title in available_job_titles:
+            # Use word boundaries to avoid partial matches (e.g., "developer" matching "web developer")
+            # and escape special characters in the title for regex safety.
+            if re.search(r'\b' + re.escape(actual_title) + r'\b', generated_text.lower()):
+                found_titles_from_ai.append(actual_title)
+
+        # Filter out potential duplicates and ensure we only take unique titles, preserving order
+        recommended_titles = list(dict.fromkeys(found_titles_from_ai))
+        
+        # Limit to top 3 recommendations as requested in the prompt
+        recommended_titles = recommended_titles[:3]
+
+        # --- Clean up career_recommendation_text ---
+        # Remove the lines that were identified as job titles from the career_recommendation_text.
+        # This is crucial to avoid redundancy in the final output.
+        if recommended_titles and career_recommendation_text:
+            lines = career_recommendation_text.split('\n')
+            cleaned_lines = []
+            for line in lines:
+                is_job_title_line = False
+                # Check if the line contains any of the extracted job titles (case-insensitive)
+                for title in recommended_titles:
+                    if re.search(r'\b' + re.escape(title) + r'\b', line.lower()):
+                        is_job_title_line = True
+                        break
+                # Also remove the "1. Jobs Recommandés :" and "2. Recommandation de Carrière :" lines if they appear
+                if re.match(r'^\s*\d+\.\s*Jobs Recommandés\s*:\s*$', line, re.IGNORECASE) or \
+                   re.match(r'^\s*\d+\.\s*Recommandation de Carrière\s*:\s*$', line, re.IGNORECASE):
+                    is_job_title_line = True
+
+                if not is_job_title_line and line.strip(): # Keep non-job title/header lines that are not empty
+                    cleaned_lines.append(line)
+            career_recommendation_text = "\n".join(cleaned_lines).strip()
+
+        # Final fallback: if after all extraction and cleanup, the career_recommendation_text is empty,
+        # but the original generated text had content, use the original text as a fallback.
+        if not career_recommendation_text and generated_text.strip():
+            career_recommendation_text = generated_text.strip()
 
         print(f"Extracted recommended titles from CV analysis: {recommended_titles}")
         print(f"Extracted career recommendation text: {career_recommendation_text[:200]}...") # Print first 200 chars

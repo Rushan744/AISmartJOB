@@ -236,6 +236,79 @@ def get_ai_recommendations_from_cv(cv_text: str, all_jobs: list):
         print(f"❌ Error decoding JSON response from Ollama API (CV analysis). Response text: {response.text}")
         return [], "Erreur lors du décodage de la réponse de l'API pour la recommandation de carrière."
 
+def extract_skills_with_scores_from_cv(cv_text: str):
+    """
+    Extracts 10 key skills from the CV text and assigns a score (0-100) to each
+    using Mistral via Ollama.
+    
+    Args:
+        cv_text (str): The extracted text content of the candidate's CV.
+                          
+    Returns:
+        list: A list of dictionaries, each with 'skill' (str) and 'score' (int).
+    """
+    prompt = (
+        f"En tant qu'expert en analyse de CV, veuillez extraire les 10 compétences clés "
+        f"du CV suivant et attribuer un score de pertinence entre 0 et 100 pour chaque compétence. "
+        f"Le score doit refléter la force ou la présence de la compétence dans le CV. "
+        f"Veuillez formater votre réponse comme une liste JSON, où chaque élément est un objet "
+        f"avec les clés 'skill' (string) et 'score' (integer).\n\n"
+        f"CV:\n```\n{cv_text}\n```\n\n"
+        f"Exemple de format de réponse:\n"
+        f"[\n"
+        f"  {{\"skill\": \"Python\", \"score\": 90}},\n"
+        f"  {{\"skill\": \"Gestion de projet\", \"score\": 75}}\n"
+        f"]\n"
+        f"Assurez-vous que la réponse est un JSON valide et ne contient aucun autre texte."
+    )
+    print(f"Prompt sent to Mistral for skill extraction:\n{prompt[:500]}...")
+
+    headers = {'Content-Type': 'application/json'}
+    data = {
+        "model": "mistral",
+        "prompt": prompt,
+        "stream": False
+    }
+
+    try:
+        response = requests.post(OLLAMA_API_URL, headers=headers, data=json.dumps(data))
+        response.raise_for_status()
+        
+        result = response.json()
+        generated_text = result.get('response', '').strip()
+        print(f"Generated text from Mistral (skill extraction):\n{generated_text}")
+        
+        # Attempt to parse the JSON response
+        skills_data = json.loads(generated_text)
+        
+        # Validate the structure and content
+        if not isinstance(skills_data, list):
+            raise ValueError("Expected a JSON list.")
+        
+        extracted_skills = []
+        for item in skills_data:
+            if not isinstance(item, dict) or "skill" not in item or "score" not in item:
+                raise ValueError("Each item in the JSON list must be an object with 'skill' and 'score'.")
+            if not isinstance(item["skill"], str) or not isinstance(item["score"], int):
+                raise ValueError("Skill must be a string and score must be an integer.")
+            
+            # Ensure score is within 0-100
+            item["score"] = max(0, min(100, item["score"]))
+            extracted_skills.append(item)
+        
+        # Return up to 10 skills
+        return extracted_skills[:10]
+
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Error communicating with Ollama API for skill extraction: {e}")
+        return []
+    except json.JSONDecodeError:
+        print(f"❌ Error decoding JSON response from Ollama API (skill extraction). Response text: {generated_text}")
+        return []
+    except ValueError as e:
+        print(f"❌ Error parsing or validating skill extraction response: {e}. Raw response: {generated_text}")
+        return []
+
 if __name__ == '__main__':
     # Example Usage (for testing purposes)
     sample_candidate = {
@@ -275,3 +348,9 @@ if __name__ == '__main__':
         print(f"- {job['title']}")
     print("\nCareer Recommendation Text:")
     print(career_text)
+
+    print("\nExtracting skills from CV text...")
+    extracted_skills = extract_skills_with_scores_from_cv(sample_cv_text)
+    print("\nExtracted Skills with Scores:")
+    for skill_item in extracted_skills:
+        print(f"- {skill_item['skill']}: {skill_item['score']}")

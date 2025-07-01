@@ -4,7 +4,7 @@ from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 from sqlalchemy.orm import sessionmaker, Session, declarative_base
 from typing import List
 from pydantic import BaseModel
-from .ai_recommender import get_ai_recommendations, get_ai_recommendations_from_cv
+from .ai_recommender import get_ai_recommendations, get_ai_recommendations_from_cv, extract_skills_with_scores_from_cv
 from .pdf_extractor import extract_text_from_pdf
 
 # Database setup
@@ -56,6 +56,13 @@ class Match(BaseModel):
     job_id: int
     candidate_id: int
     score: float
+
+class SkillScore(BaseModel):
+    skill: str
+    score: int
+
+class SkillsExtractionResponse(BaseModel):
+    extracted_skills: List[SkillScore]
 
 class CVRecommendationResponse(BaseModel):
     recommended_jobs: List[Job]
@@ -209,6 +216,36 @@ async def recommend_jobs_from_cv(
             recommended_jobs=response_jobs,
             career_recommendation_text=career_recommendation_text
         )
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Une erreur interne du serveur s'est produite : {e}")
+
+@ai_router.post(
+    "/extract_skills_from_cv/",
+    response_model=SkillsExtractionResponse,
+    summary="Extraire les compétences d'un CV avec des scores",
+    description="Télécharge un fichier PDF de CV et extrait 10 compétences clés avec un score de pertinence (0-100) pour chacune. Requiert une authentification (utilisateur ou administrateur). Seuls les fichiers PDF sont supportés.",
+    tags=["AI SmartJob"]
+)
+async def extract_skills_from_cv_endpoint(
+    fichier_cv: UploadFile = File(..., description="Le fichier PDF du CV à télécharger."),
+    current_user: str = Depends(get_current_user)
+):
+    if not fichier_cv.filename.endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Seuls les fichiers PDF sont supportés.")
+
+    try:
+        cv_content = await fichier_cv.read()
+        cv_text = extract_text_from_pdf(cv_content)
+        
+        if not cv_text.strip():
+            raise HTTPException(status_code=400, detail="Impossible d'extraire le texte du PDF. Le PDF pourrait être vide ou basé sur des images.")
+
+        extracted_skills = extract_skills_with_scores_from_cv(cv_text)
+        
+        return SkillsExtractionResponse(extracted_skills=extracted_skills)
 
     except HTTPException as e:
         raise e

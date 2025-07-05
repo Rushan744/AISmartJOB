@@ -9,3 +9,5 @@ faker
 PyPDF2
 python-multipart
 passlib[bcrypt]
+pytest
+httpx

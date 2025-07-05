@@ -2,7 +2,7 @@ import requests
 import json
 import re
 
-OLLAMA_API_URL = "http://localhost:11434/api/generate"
+OLLAMA_API_URL = "http://host.docker.internal:11434/api/generate"
 
 def get_ai_recommendations(candidate_info, all_jobs):
     """

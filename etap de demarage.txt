@@ -8,6 +8,9 @@ python main.py
 python -m uvicorn emploi-matching.src.api:app --reload
 
 or
+# with docker CI/CD
 
+ollama run mistral &&
+C:\Users\rusha\Downloads\mongodb-windows-x86_64-8.0.9\mongodb-win32-x86_64-windows-8.0.9\bin\mongod &&
 powershell.exe -File ".\build_and_run.ps1"
 

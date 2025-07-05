@@ -71,7 +71,7 @@ def main():
     print(f"Scraped data: {scraped_data}")
 
     # Load candidate data from CSV
-    csv_path = 'D:/Smartjob_working_withfastapi/emploi-matching/data/candidats.csv'
+    csv_path = 'data/candidats.csv'
     print(f"Attempting to read candidates from CSV: {csv_path}")
     candidates_df = pd.read_csv(csv_path)
     candidates = candidates_df.to_dict('records')

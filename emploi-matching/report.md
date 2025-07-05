@@ -1,256 +1,256 @@
-# Mise en situation 1 (E1)
+Mise en situation 1 (E1)
 
-## Collecte, stockage et mise à disposition des données d’un projet
+Collecte, stockage et mise à disposition des données d’un projet IA
 
-**Projet:** Job Matching Application - A system to match job seekers with suitable job openings.
+Projet IA: SmartJob - Application de mise en relation emploi-candidat
 
-## Formation Développeur
+Formation Développeur en Intelligence Artificielle
 RNCP 37827
 Promotion 2023-2024
 
-## SOMMAIRE
+RUSHAN ZAMIR Saeedullah
+
+SOMMAIRE
+
+Introduction 3
+Présentation du projet 3
+Contexte du projet 3
+Spécifications techniques 3
+Extraction des données 4
+Données issues d’un service web (API) 4
+Données issues d’une page web 4
+Données issues d’un fichier 4
+Données issues d’un base de données relationnelles 4
+Données issues d’un système big data 4
+Requêtage des données 5
+Requêtes de type SQL 5
+Requêtes depuis un système big data 5
+Agrégation des données 5
+Préparation des données 5
+Agrégation des données 5
+Jeu de données final 5
+Création de la base de données 6
+Modélisation des données 6
+Modèle physique des données (MPD) 6
+Choix du système de gestion de la base données (SGBD) 6
+Création de la base de données 6
+Import des données 6
+Conformité RGPD 6
+Développement de l’API 7
+Spécifications fonctionnelles et techniques 7
+Conception de l’architecture de l’API 7
+Documentation 7
+Perspectives et améliorations 7
+Conclusions 7
+Annexes 8
+
+---
+
+**Note : il est attendu un rapport de 2 à 5 pages pour ce livrable**
+
+### 1. Introduction
+
+#### Présentation du projet
+L'application **SmartJob** vise à mettre en relation les demandeurs d'emploi avec des offres d'emploi pertinentes. Elle agrège les offres d'emploi provenant de diverses sources, notamment une API publique et des analyses web, et les met en relation avec les profils de candidats en fonction de leurs compétences, de leur expérience et de leur localisation. L'application permet de mettre efficacement en relation les candidats et les offres d'emploi grâce à un système de notation.
+
+#### Contexte du projet
+Ce projet s'inscrit dans le cadre d'un programme de formation destiné aux développeurs. Son objectif est de démontrer la capacité à collecter, stocker et traiter des données pour une application data-driven. Il simule un scénario réel où les demandeurs d'emploi et les employeurs peuvent se rencontrer grâce à un processus de mise en relation automatisé.
+
+#### Spécifications techniques
+Le projet est principalement développé en **Python** pour l'ensemble des processus d'extraction, de traitement des données et de développement de l'API. Les principales bibliothèques et outils utilisés incluent :
+*   `requests` : Pour les interactions avec les APIs REST et le web scraping.
+*   `BeautifulSoup4` : Pour l'analyse et l'extraction de données à partir de pages web HTML.
+*   `pandas` : Pour la manipulation et la transformation des jeux de données.
+*   `SQLAlchemy` : Utilisé comme ORM (Object-Relational Mapper) pour interagir avec la base de données SQLite.
+*   `FastAPI` : Un framework web moderne et performant pour la construction de l'API RESTful, offrant validation automatique des données et documentation interactive.
+*   `PyMongo` : Pour la connexion et l'interaction avec la base de données MongoDB.
+*   `Faker` : Pour la génération de données de candidats factices à des fins de test et de développement.
+*   `PyPDF2` : Pour l'extraction de texte à partir de fichiers PDF (utilisé pour l'analyse des CV).
+*   `passlib[bcrypt]` : Pour le hachage sécurisé des mots de passe des utilisateurs.
+
+L'application utilise deux systèmes de gestion de base de données :
+*   **SQLite** : Pour le stockage local des données structurées et relationnelles (profils de candidats, offres d'emploi normalisées, et résultats de correspondance).
+*   **MongoDB** : Pour le stockage initial des données brutes et potentiellement non structurées des offres d'emploi récupérées via l'API Adzuna.
+
+Le flux de données consiste à extraire les données d'emploi de l'API Adzuna et de sources web, combinées, normalisées, puis stockées dans SQLite. Les données des candidats sont chargées à partir d'un fichier CSV. L'application associe ensuite les offres d'emploi aux candidats selon des critères prédéfinis et stocke les résultats. L'accès à l'API est sécurisé par une authentification HTTP de base.
+
+**Schéma global du flux de données:**
+
+```mermaid
+graph TD
+    A[Adzuna API] --> B(Scraping Module);
+    B --> C{Raw Job Data};
+    C --> D[MongoDB (adzuna_jobs)];
+    E[Web Scraping Source] --> B;
+    F[candidats.csv] --> G(Candidate Data Loading);
+    D -- Processed Job Data --> H(Data Normalization & Aggregation);
+    H --> I[SQLite DB (jobs table)];
+    G --> J[SQLite DB (candidates table)];
+    I & J --> K(Matching & Processing Module);
+    K -- Job Recommendations & Career Text --> L[Frontend (index.html)];
+    K -- Extracted Skills --> L;
+    L -- CV Upload --> K;
+    L -- User Login --> M(FastAPI Backend - Authentication);
+    M --> N[SQLite DB (users table - implied)];
+    K -- Match Scores --> O[SQLite DB (matches table)];
+```
+
+### 2. Extraction des données
+
+Le projet met en œuvre des scripts d'extraction pour collecter des données à partir de diverses sources, garantissant la pérennité de la collecte nécessaire au projet.
+
+#### Données issues d’un service web (API)
+Les offres d'emploi sont récupérées de l'**API Adzuna**. L'application envoie des requêtes HTTP GET à l'API avec des paramètres de recherche spécifiques (ex: `what='developer'`, `where='Paris'`). La réponse est un objet JSON structuré contenant des champs comme `title`, `company`, `location` (qui peut être un objet imbriqué), `description`, etc. Ces données brutes sont initialement stockées dans une collection dédiée de **MongoDB** (`adzuna_jobs`) pour une ingestion rapide et flexible.
+*Exemple de données brutes Adzuna (simplifié) :*
+```json
+{
+  "title": "Développeur Fullstack",
+  "company": {"display_name": "Tech Solutions"},
+  "location": {"display_name": "Paris"},
+  "description": "Développement d'applications web..."
+}
+```
+
+#### Données issues d’une page web
+Des offres d'emploi sont également extraites par web scraping à partir d'une URL prédéfinie, comme le site "Real Python Fake Jobs". Le script utilise `requests` pour obtenir le contenu HTML de la page et `BeautifulSoup4` pour analyser ce contenu. Il cible des éléments HTML spécifiques (ex: balises `<h2>` pour les titres de poste, `<h3>` pour les entreprises) pour extraire les informations pertinentes. Ces données sont ensuite combinées avec celles de l'API Adzuna.
+*Exemple de données extraites par scraping (simplifié) :*
+```
+{
+  "title": "Ingénieur Logiciel",
+  "company": "Innovate Corp",
+  "location": "Lyon",
+  "description": "Conception et implémentation de systèmes logiciels."
+}
+```
+La différence fondamentale entre les données extraites via API et web scraping réside dans leur **source et leur structure initiale**. L'API Adzuna fournit des données déjà structurées en format JSON, ce qui facilite leur ingestion directe. En revanche, le web scraping implique l'extraction de données à partir de pages HTML non structurées, nécessitant une analyse syntaxique (parsing) pour identifier et extraire les informations pertinentes. Bien que les deux sources fournissent des offres d'emploi, la méthode de collecte et le format initial des données diffèrent significativement.
+
+#### Données issues d’un fichier
+Les données des candidats sont chargées à partir d'un fichier CSV nommé `candidats.csv`. Ce fichier contient des informations structurées sur les profils des demandeurs d'emploi, telles que leur nom, email, compétences, années d'expérience, localisation et secteur d'activité. La bibliothèque `pandas` est utilisée pour lire et manipuler ces données.
+*Exemple de ligne dans `candidats.csv` :*
+`id,nom,email,compétences,expérience,localisation,secteur`
+`1,Alice Dupont,alice@example.com,"Python, SQL, Analyse de données",5,Paris,IT`
+
+#### Données issues d’un base de données relationnelles
+Dans le contexte de l'extraction initiale, la base de données relationnelle (SQLite) n'est pas une source d'extraction primaire. Elle est la destination finale pour les données d'emploi et de candidat après leur agrégation et normalisation. Cependant, des requêtes sont effectuées sur cette base pour récupérer les données nécessaires au processus de correspondance et à l'exposition via l'API.
+
+#### Données issues d’un système big data
+Le projet utilise **MongoDB** comme système de stockage pour les données brutes issues de l'API Adzuna. Bien que MongoDB soit une base de données NoSQL capable de gérer de grands volumes de données non structurées, son rôle ici est principalement celui d'un point d'ingestion initial. Les données y sont stockées telles quelles, puis des processus ultérieurs les extraient, les transforment et les normalisent pour les intégrer dans la base de données relationnelle SQLite, qui est le cœur du système de correspondance. Ainsi, MongoDB est alimenté par l'API Adzuna, et ses données sont ensuite consommées pour enrichir la base SQLite. La base MongoDB est donc utilisée comme un "staging area" ou un cache pour les données brutes avant leur traitement et leur intégration dans le modèle relationnel.
+
+### 3. Requêtage des données
+
+Le requêtage des données s'effectue principalement à partir des bases de données développées pour les besoins du projet, afin de préparer les données nécessaires aux processus de correspondance et d'analyse.
+
+#### Requêtes de type SQL
+L'application interagit avec la base de données **SQLite** via **SQLAlchemy**. Des requêtes SQL (générées par l'ORM) sont utilisées pour :
+*   **Récupération :** Lire les profils de candidats (`SELECT * FROM candidates`), les offres d'emploi normalisées (`SELECT * FROM jobs`), et les correspondances existantes (`SELECT * FROM matches`).
+    *   *Objectif :* Fournir les données nécessaires au module de correspondance et aux points de terminaison de l'API.
+    *   *Résultat :* Des listes d'objets Python représentant les enregistrements des tables, facilement manipulables.
+*   **Insertion :** Ajouter de nouvelles offres d'emploi et de nouveaux candidats après l'extraction et la préparation.
+*   **Mise à jour/Suppression :** Gérer le cycle de vie des données (ex: `DELETE FROM jobs` avant une nouvelle insertion massive pour rafraîchir les données).
+
+#### Requêtes depuis un système big data
+Des requêtes sont effectuées sur la base de données **MongoDB** pour récupérer les données brutes des offres d'emploi stockées dans la collection `adzuna_jobs`.
+*   *Objectif :* Accéder aux informations non structurées ou semi-structurées directement issues de l'API Adzuna avant qu'elles ne soient normalisées et transférées vers la base de données SQLite pour l'intégration dans le processus de correspondance.
+*   *Résultat :* Des documents JSON bruts, qui sont ensuite traités pour extraction et normalisation.
+
+### 4. Agrégation des données
+
+L'agrégation des données est un processus crucial qui combine les informations provenant de différentes sources et les prépare pour le stockage et l'utilisation dans le système de correspondance.
+
+#### Préparation des données
+La préparation des données implique le nettoyage et la transformation des données extraites afin d'en garantir la cohérence et l'exactitude. Cela comprend :
+*   **Gestion des valeurs manquantes :** L'application gère les valeurs manquantes en fournissant des valeurs par défaut (ex: chaîne vide pour une description manquante) ou en ignorant les entrées incomplètes, selon la criticité du champ.
+*   **Homogénéisation des formats de données :** Les données sont normalisées pour assurer l'uniformité. Par exemple, les chaînes de caractères sont converties en minuscules et les espaces superflus sont supprimés (`.strip()`). Les structures de localisation complexes (objets JSON de l'API Adzuna) sont aplaties en simples chaînes de caractères.
+    *   *Exemple d'homogénéisation de localisation :* Si l'API Adzuna renvoie `{"location": {"display_name": "Paris"}}`, cela est transformé en `"Paris"`. Si le scraping renvoie directement `"Paris"`, le format est déjà compatible.
+
+#### Agrégation des données
+Les données des offres d'emploi issues de l'API Adzuna (après récupération de MongoDB) et celles provenant du web scraping sont combinées en un seul ensemble de données. Ce processus implique la normalisation des structures de données et la gestion des éventuelles incohérences entre les sources. L'objectif est de créer un jeu de données unique et cohérent qui servira d'entrée pour le système de correspondance.
+*Exemple d'agrégation :*
+Les champs `title`, `company`, `location`, `description` sont extraits de chaque source. Si l'API Adzuna utilise `company.display_name` et le scraping utilise `company_name`, ces champs sont mappés à un champ `company` unique dans le jeu de données agrégé. Les données sont ensuite fusionnées dans une liste unique d'objets emploi.
+
+#### Jeu de données final
+Le jeu de données final est le résultat de l'agrégation et de la préparation des données. Il s'agit d'un ensemble de données unifié, nettoyé et normalisé, prêt à être importé dans la base de données SQLite pour le stockage et à être utilisé par le module de correspondance. Ce jeu de données est la source unique de vérité pour les offres d'emploi dans le processus de matching.
+
+### 5. Création de la base de données
+
+L'application utilise deux systèmes de gestion de base de données pour répondre à des besoins différents : SQLite pour les données structurées et MongoDB pour les données brutes et flexibles.
+
+#### Modélisation des données
+La modélisation des données a été réalisée en utilisant la **méthode Merise**, une approche structurée pour la conception de systèmes d'information. Elle se décompose en trois niveaux :
+1.  **Modèle Conceptuel des Données (MCD) :** Décrit les données du point de vue de l'utilisateur, sans contraintes techniques. Il identifie les entités (objets du monde réel) et les relations entre elles. Pour SmartJob, les entités principales sont `Candidat`, `Emploi`, et `Correspondance`.
+2.  **Modèle Logique des Données (MLD) :** Traduit le MCD en une structure compatible avec un SGBD relationnel, en définissant les tables, les attributs (colonnes) et les clés primaires/étrangères.
+3.  **Modèle Physique des Données (MPD) :** Spécifie l'implémentation concrète du MLD dans un SGBD donné, incluant les types de données spécifiques, les contraintes d'intégrité, et les index.
+
+La méthode Merise a été mise en œuvre en partant d'une analyse des besoins fonctionnels (mettre en relation candidats et emplois) pour identifier les entités et leurs propriétés. Par exemple, un "Candidat" a un nom, des compétences, etc. Les relations ont ensuite été définies (un Candidat peut correspondre à plusieurs Emplois, un Emploi peut correspondre à plusieurs Candidats, d'où une table de liaison "Correspondance"). Le passage au MLD a permis de définir les tables et leurs colonnes, et enfin le MPD a concrétisé cela pour SQLite.
+
+#### Modèle physique des données (MPD)
+Le modèle physique des données est implémenté à l'aide de **SQLite** et géré par **SQLAlchemy**. Les tables ont été conçues pour représenter les entités clés du projet et leurs relations, garantissant l'intégrité et l'efficacité des requêtes.
+
+*   **`candidates` :** Stocke les informations sur les demandeurs d'emploi.
+    *   `id` (INTEGER PRIMARY KEY) : Identifiant unique pour chaque candidat. C'est une clé primaire pour garantir l'unicité et permettre des références rapides.
+    *   `nom` (TEXT) : Nom complet du candidat.
+    *   `email` (TEXT) : Adresse email du candidat.
+    *   `compétences` (TEXT) : Compétences du candidat, stockées sous forme de chaîne de caractères (ex: "Python, SQL, Analyse de données").
+    *   `expérience` (INTEGER) : Années d'expérience professionnelle du candidat.
+    *   `localisation` (TEXT) : Ville de résidence du candidat.
+    *   `secteur` (TEXT) : Secteur d'activité dans lequel le candidat recherche un emploi.
+    *   *Justification :* Cette table regroupe toutes les informations essentielles pour identifier un candidat et évaluer sa pertinence pour un poste. Les champs ont été choisis pour capturer les attributs clés d'un profil professionnel.
+
+*   **`jobs` :** Stocke les informations normalisées sur les offres d'emploi.
+    *   `id` (INTEGER PRIMARY KEY) : Identifiant unique pour chaque offre d'emploi.
+    *   `title` (TEXT) : Titre de l'offre d'emploi.
+    *   `company` (TEXT) : Nom de l'entreprise proposant l'emploi.
+    *   `location` (TEXT) : Lieu géographique de l'emploi.
+    *   `description` (TEXT) : Description détaillée de l'offre d'emploi.
+    *   *Justification :* Cette table contient les informations clés des postes, agrégées et normalisées à partir de différentes sources, prêtes pour le matching. Les champs sont standardisés pour faciliter les comparaisons.
+
+*   **`matches` :** Stocke les résultats des correspondances entre candidats et emplois.
+    *   `id` (INTEGER PRIMARY KEY) : Identifiant unique pour chaque correspondance.
+    *   `job_id` (INTEGER FOREIGN KEY) : Clé étrangère faisant référence à l'`id` de la table `jobs`. Elle établit un lien direct avec l'offre d'emploi concernée.
+    *   `candidate_id` (INTEGER FOREIGN KEY) : Clé étrangère faisant référence à l'`id` de la table `candidates`. Elle établit un lien direct avec le candidat concerné.
+    *   `score` (INTEGER) : Score numérique (entre 0 et 100) représentant la qualité de la correspondance.
+    *   *Justification :* Cette table est essentielle pour stocker les résultats du processus de matching, permettant de retrouver rapidement les emplois les plus pertinents pour un candidat ou vice-versa. Les clés étrangères garantissent l'intégrité référentielle et l'efficacité des jointures entre les tables `jobs` et `candidates`.
+
+*   **`users` :** Stocke les informations d'authentification des utilisateurs.
+    *   `id` (INTEGER PRIMARY KEY) : Identifiant unique de l'utilisateur.
+    *   `username` (TEXT UNIQUE) : Nom d'utilisateur unique.
+    *   `hashed_password` (TEXT) : Mot de passe haché de l'utilisateur.
+    *   *Justification :* Cette table est essentielle pour la gestion des accès et la sécurisation de l'API, permettant l'authentification des utilisateurs avant qu'ils n'accèdent aux fonctionnalités du système.
+
+#### Choix du système de gestion de la base données (SGBD)
+*   **SQLite :** A été choisi pour sa simplicité, sa légèreté et sa facilité d'utilisation. Il est idéal pour le stockage local des données structurées du projet et ne nécessite pas de serveur de base de données distinct, ce qui simplifie le déploiement et la gestion pour un projet de cette envergure. Son adéquation réside dans sa capacité à gérer des données relationnelles avec des transactions ACID, parfait pour les données de candidats, d'emplois normalisés et de correspondances qui ont une structure fixe et des relations claires.
+*   **MongoDB :** A été choisi pour stocker les données brutes des offres d'emploi récupérées depuis l'API Adzuna. En tant que base de données NoSQL orientée document, MongoDB est particulièrement adaptée à l'ingestion de données semi-structurées ou non structurées, comme les réponses JSON complexes des APIs externes. Sa flexibilité permet de stocker les données telles quelles avant toute transformation, ce qui est un avantage pour la phase de collecte et d'ingestion de données hétérogènes.
+
+#### Création de la base de données
+La base de données SQLite (`emploi.db`) est créée programmatiquement au démarrage de l'application via SQLAlchemy. L'application définit les schémas des tables (`UserDB`, `JobDB`, `CandidateDB`, `MatchDB`) et utilise `Base.metadata.create_all(engine)` pour générer ces tables si elles n'existent pas. Ce processus est automatisé par le script `main.py`.
+
+#### Import des données
+L'alimentation de la base de données est réalisée par des scripts Python.
+*   Les données des candidats sont importées à partir du fichier `candidats.csv` en utilisant `pandas`, puis insérées dans la table `candidates` de SQLite.
+*   Les données d'emploi, après avoir été extraites de l'API Adzuna (et potentiellement stockées temporairement dans MongoDB) et du web scraping, sont agrégées, normalisées, puis insérées dans la table `jobs` de SQLite. Ce processus assure que la base de données relationnelle contient un jeu de données propre et cohérent pour le matching.
+
+### 6. Conformité RGPD
+
+Le projet SmartJob traite des données personnelles (nom, email, compétences, expérience, localisation) des candidats, ce qui implique des exigences de conformité au Règlement Général sur la Protection des Données (RGPD). La sécurisation des points de terminaison de l'API avec authentification est une mesure clé, et d'autres aspects sont également pris en compte :
+
+*   **Finalité du traitement :** Les données personnelles sont collectées et traitées dans le but exclusif de mettre en relation les candidats avec des offres d'emploi pertinentes et de fournir des recommandations de carrière. Cette finalité est clairement définie et communiquée.
+*   **Minimisation des données :** Seules les données strictement nécessaires à la réalisation de la finalité du projet sont collectées et stockées. Les champs sont limités aux informations pertinentes pour le matching et la recommandation.
+*   **Base légale du traitement :** Le traitement des données est basé sur le consentement de l'utilisateur (implicite lors de l'upload du CV ou de la création de compte) et l'exécution d'un contrat (fourniture du service de matching). Il est recommandé d'ajouter une acceptation explicite des conditions d'utilisation et de la politique de confidentialité.
+*   **Durée de stockage :** Les données personnelles sont conservées uniquement pendant la durée nécessaire à la réalisation de la finalité du traitement. Une politique de rétention des données devrait être définie, par exemple, la suppression des données après une période d'inactivité du compte (ex: 2 ans) ou sur demande explicite de l'utilisateur.
+*   **Sécurisation des données :**
+    *   **Authentification :** L'API utilise l'authentification HTTP Basic avec des mots de passe hachés (`passlib[bcrypt]`) pour protéger l'accès aux données sensibles. Seuls les utilisateurs authentifiés peuvent accéder à leurs propres données ou aux données publiques (offres d'emploi).
+    *   **Contrôle d'accès :** Les points de terminaison de l'API sont protégés, et l'accès aux données utilisateurs est restreint aux utilisateurs authentifiés. Un utilisateur "admin" a des privilèges pour voir tous les utilisateurs, ce qui nécessite une gestion rigoureuse de ce compte et de ses accès.
+    *   **Intégrité :** En contrôlant l'accès, le risque de modifications ou de suppressions non autorisées des données est minimisé.
+*   **Droits des personnes concernées :** Bien que non implémenté dans l'interface actuelle, le système doit prévoir la possibilité pour les utilisateurs d'exercer leurs droits RGPD :
+    *   **Droit d'accès :** Obtenir la confirmation que leurs données sont traitées et y accéder.
+    *   **Droit de rectification :** Demander la correction de données inexactes.
+    *   **Droit à l'effacement ("droit à l'oubli") :** Demander la suppression de leurs données.
+    *   **Droit à la limitation du traitement :** Demander la suspension du traitement de leurs données.
+    *   **Droit d'opposition :** S'opposer au traitement de leurs données.
+    *   **Droit à la portabilité :** Recevoir leurs données dans un format structuré et couramment utilisé.
+
+### 7. Développement de l’API
 
-1.  Introduction
-2.  Présentation du projet
-3.  Contexte du projet
-4.  Spécifications techniques
-5.  Extraction des données
-    *   Données issues d’un service web (API)
-    *   Données issues d’une page web
-    *   Données issues d’un fichier
-6.  Requêtage des données
-    *   Requêtes de type SQL
-7.  Agrégation des données
-8.  Préparation des données
-9.  Création de la base de données
-    *   Modélisation des données (MCD)
-    *   Modèle physique des données (MPD)
-    *   Choix du système de gestion de la base données (SGBD)
-    *   Création de la base de données
-    *   Import des données
-10. Conformité RGPD
-11. Développement de l’API
-    *   Spécifications fonctionnelles et techniques
-    *   Conception de l’architecture de l’API
-    *   Documentation
-12. Perspectives et améliorations
-13. Conclusions
-14. Annexes
-
-## 1. Introduction
-
-### Présentation du projet
-
-The Job Matching Application aims to connect job seekers with relevant job opportunities. It aggregates job postings from various sources, including a public API and web scraping, and matches them with candidate profiles based on skills, experience, and location. The application provides a way to efficiently match candidates to jobs based on a scoring system.
-
-### Contexte du projet
-
-This project is developed as part of a training program for developers. The goal is to demonstrate the ability to collect, store, and process data for a data-driven application. The project simulates a real-world scenario where job seekers and employers can meet each other through an automated matching process.
-
-### Spécifications techniques
-
-The project utilizes Python for data extraction, processing, and API development. It leverages libraries such as `requests` for API calls and web scraping, `BeautifulSoup4` for parsing HTML, `pandas` for data manipulation, `SQLAlchemy` (used as an ORM) for database interaction, and `FastAPI` for creating the API. The application uses SQLite for local data storage and MongoDB for storing job data. The project also uses GitHub for version control and collaboration.
-
-The data flow involves extracting job data from the Adzuna API and a web scraping source, unifying this data through aggregation, and storing it in a database. Candidate data is read from a CSV file. The application then matches jobs to candidates based on predefined criteria and stores the results. The application uses HTTP Basic Authentication to secure the API endpoints.
-
-## 2. Extraction des données
-
-The project extracts data from the following sources:
-
-### Données issues d’un service web (API)
-
-Job postings are retrieved from the Adzuna API. The application sends requests to the API with specific search parameters (e.g., keywords, location) and parses the JSON response to extract relevant job details such as title, company, and location. The API key is stored in an environment variable for security.
-
-### Données issues d’une page web
-
-Job postings are scraped from a predefined URL using the `requests` and `BeautifulSoup4` libraries. The application extracts job title, company, and location information from the HTML content of the page.
-
-### Données issues d’un fichier
-
-Candidate data is read from a CSV file (`candidats.csv`). The file contains information about candidates, including their skills, experience, and location.
-
-## 3. Requêtage des données
-
-### Requêtes de type SQL
-
-SQL queries are used to interact with the SQLite database. The application uses SQLAlchemy (an ORM) to define the database schema and perform CRUD operations. Queries are used to retrieve, insert, update, and delete job, candidate, and match data.
-
-## 4. Agrégation des données
-
-Data from the Adzuna API and the web scraping source are aggregated into a single dataset. This involves unifying the data structures and handling any inconsistencies in the data to create a coherent dataset. The aggregation process involves:
-
-*   Fetching job data from the Adzuna API.
-*   Scraping job data from the web.
-*   Unifying the data from the two sources into a single list.
-*   Transforming the data into Job objects.
-*   Persisting the Job objects to the SQLite database.
-
-The process of extracting data from different sources and transforming it into a consistent format can also be seen as a form of aggregation, as it involves unifying data from multiple sources into a unified dataset.
-
-## 5. Préparation des données
-
-Data preparation involves cleaning and transforming the extracted data to ensure consistency and accuracy. This includes:
-
-*   Handling missing values: The application handles missing values by providing default values or skipping entries with missing data.
-*   Standardizing data formats: The application standardizes data formats by converting all text to lowercase and removing whitespace.
-*   Removing duplicate entries: The application removes duplicate entries by using sets to store unique values.
-
-## 6. Création de la base de données
-
-The application uses two databases: SQLite and MongoDB.
-
-### SQLite Database
-
-The SQLite database stores information about candidates, jobs, and matches. It consists of three tables:
-
-*   **candidates:** Stores information about job seekers.
-    *   `id` (INTEGER PRIMARY KEY): Candidate ID - A unique integer identifying each candidate.
-    *   `nom` (TEXT): Candidate name - The full name of the candidate.
-    *   `email` (TEXT): Candidate email - The email address of the candidate.
-    *   `compétences` (TEXT): Candidate skills - A comma-separated list of the candidate's skills.
-    *   `expérience` (INTEGER): Candidate experience - The candidate's years of experience.
-    *   `localisation` (TEXT): Candidate location - The city where the candidate is located.
-    *   `secteur` (TEXT): Candidate sector - The industry sector in which the candidate is seeking employment.
-*   **jobs:** Stores information about job openings.
-    *   `id` (INTEGER PRIMARY KEY): Job ID - A unique integer identifying each job posting.
-    *   `title` (TEXT): Job title - The title of the job posting.
-    *   `company` (TEXT): Job company - The name of the company offering the job.
-    *   `location` (TEXT): Job location - The location of the job.
-*   **matches:** Stores information about which candidates match which jobs.
-    *   `id` (INTEGER PRIMARY KEY): Match ID - A unique integer identifying each match.
-    *   `job_id` (INTEGER FOREIGN KEY): Job ID - A foreign key referencing the `jobs` table, indicating the job posting that is part of the match.
-    *   `candidate_id` (INTEGER FOREIGN KEY): Candidate ID - A foreign key referencing the `candidates` table, indicating the candidate that is part of the match.
-    *   `score` (INTEGER): Match score - A numerical score representing the quality of the match between the candidate and the job.
-
-### MongoDB Database
-
-The MongoDB database stores job data retrieved from the Adzuna API. The `adzuna_jobs` collection contains job postings with information such as the job's location (latitude and longitude), creation date, Adzuna Job ID, company category, location area, a URL to redirect to the job posting, the job title, and a boolean indicating if the salary is predicted.
-
-### Modélisation des données
-
-The database schema includes tables for jobs, candidates, and matches. Each table contains relevant fields such as job title, company, location, candidate skills, experience, and match score.
-
-The conceptual data model (MCD) consists of three main entities: Candidate, Job, and Match. Candidates have attributes such as name, email, skills, experience, and location. Jobs have attributes such as title, company, and location. Matches represent the relationship between candidates and jobs and have a score indicating the quality of the match.
-
-### Modèle physique des données (MPD)
-
-Le modèle physique des données est implémenté à l'aide de SQLite. Le fichier de base de données est créé à l'aide de SQLAlchemy, un ORM. Les tables sont définies comme suit :
-
-*   **candidates :** Stocke les informations sur les demandeurs d'emploi.
-    *   `id` (INTEGER PRIMARY KEY) : ID du candidat - Un entier unique identifiant chaque candidat.
-    *   `nom` (TEXT) : Nom du candidat - Le nom complet du candidat.
-    *   `email` (TEXT) : Email du candidat - L'adresse email du candidat.
-    *   `compétences` (TEXT) : Compétences du candidat - Une liste de compétences du candidat séparées par des virgules.
-    *   `expérience` (INTEGER) : Expérience du candidat - Les années d'expérience du candidat.
-    *   `localisation` (TEXT) : Localisation du candidat - La ville où se trouve le candidat.
-    *   `secteur` (TEXT) : Secteur du candidat - Le secteur d'activité dans lequel le candidat recherche un emploi.
-*   **jobs :** Stocke les informations sur les offres d'emploi.
-    *   `id` (INTEGER PRIMARY KEY) : ID de l'emploi - Un entier unique identifiant chaque offre d'emploi.
-    *   `title` (TEXT) : Titre de l'emploi - Le titre de l'offre d'emploi.
-    *   `company` (TEXT) : Entreprise de l'emploi - Le nom de l'entreprise proposant l'emploi.
-    *   `location` (TEXT) : Lieu de l'emploi - Le lieu de l'emploi.
-*   **matches :** Stocke les informations sur les candidats qui correspondent aux emplois.
-    *   `id` (INTEGER PRIMARY KEY) : ID de la correspondance - Un entier unique identifiant chaque correspondance.
-    *   `job_id` (INTEGER FOREIGN KEY) : ID de l'emploi - Une clé étrangère faisant référence à la table `jobs`, indiquant l'offre d'emploi qui fait partie de la correspondance.
-    *   `candidate_id` (INTEGER FOREIGN KEY) : ID du candidat - Une clé étrangère faisant référence à la table `candidates`, indiquant le candidat qui fait partie de la correspondance.
-    *   `score` (INTEGER) : Score de correspondance - Un score numérique représentant la qualité de la correspondance entre le candidat et l'emploi.
-
-### Choix du système de gestion de la base données (SGBD)
-
-SQLite a été choisi pour sa simplicité et sa facilité d'utilisation. Il est adapté au stockage local des données et ne nécessite pas de serveur de base de données distinct. MongoDB a été choisi pour stocker les données de travail récupérées depuis l'API Adzuna, car il s'agit d'une base de données NoSQL capable de gérer de grandes quantités de données non structurées.
-
-### Création de la base de données
-
-The database is created using SQLAlchemy, an ORM. The application defines the table schemas and creates the tables in the SQLite database.
-
-### Import des données
-
-Data is imported into the database using SQLAlchemy. The application reads data from the CSV file and the combined job dataset and inserts it into the respective tables.
-
-## 7. Conformité RGPD
-
-From a data privacy perspective, securing the API endpoints with authentication offers several key advantages:
-
-*   **Confidentiality:** Authentication ensures that only authorized individuals can access sensitive candidate and job data, preventing unauthorized disclosure.
-*   **Integrity:** By controlling access, we minimize the risk of unauthorized modifications or deletions, helping to maintain the accuracy and reliability of the data.
-*   **Controlled Access:** By implementing authentication, we ensure that only authorized personnel can interact with the API and the data it provides, limiting the potential for misuse or accidental data breaches.
-
-## 8. Développement de l’API
-
-The API is built using FastAPI.
-
-### Spécifications fonctionnelles et techniques
-
-The API provides endpoints for accessing job, candidate, and match data. It uses the REST architecture and supports JSON data format. The API endpoints are:
-
-*   `/jobs/`: Returns a list of jobs.
-*   `/candidates/`: Returns a list of candidates.
-*   `/matches/`: Returns a list of matches.
-
-The API uses HTTP Basic Authentication for security.
-
-### Conception de l’architecture de l’API
-
-The API is designed to be stateless and scalable. It uses authentication to protect the endpoints and ensure that only authorized users can access the data. The API follows the REST principles and uses JSON for data exchange.
-
-### Documentation
-
-The API is documented using OpenAPI (Swagger). The documentation includes information about the endpoints, request parameters, and response formats. The OpenAPI documentation can be accessed by navigating to `/docs` in a web browser.
-
-## 9. Matching Logic
-
-The matching logic is implemented by comparing the skills, location, and experience of a job and a candidate. The more skills they have in common, the closer the location, and the more the candidate's experience matches the job's requirements, the higher the match score.
-
-The matching logic calculates a score based on common skills, location, and experience. This is a rule-based matching system.
-
-## 10. Perspectives et améliorations
-
-Future improvements include:
-
-*   Implementing a more sophisticated matching algorithm: The current matching algorithm is based on a simple scoring system. A more sophisticated algorithm could take into account more factors, such as the candidate's skills, experience, and location.
-*   Adding support for more data sources: The application currently extracts data from the Adzuna API and a web scraping source. Adding support for more data sources would increase the number of job postings available.
-*   Improving the API documentation: The API documentation could be improved by adding more examples and explanations.
-*   Implementing a user interface for managing jobs and candidates: The application currently does not have a user interface. Implementing a user interface would make it easier for users to manage jobs and candidates.
-*   Implementing consent and data access/modification/deletion features to enhance data privacy.
-
-## 11. Conclusions
-
-The Job Matching Application demonstrates the ability to collect, store, and process data for a data-driven application. It showcases the use of various technologies and techniques for data extraction, preparation, and storage. The application provides a foundation for building a more sophisticated job matching system.
-
-## 14. Annexes
-
-The annexes could include more detailed information on the data sources, SQL queries, RGPD compliance information, API documentation, and coding style conventions used in the project.
-
-### Annexe 1: Code pour la connexion à la base de données SQLite à l'aide de SQLAlchemy
-```python
-    engine = create_engine('sqlite:///emploi.db')
-    Base.metadata.create_all(engine)
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    ```
-### Annexe 2: Code pour la définition des modèles Job, Candidate et Match à l'aide de SQLAlchemy
-```python
-    class Job(Base):
-        __tablename__ = 'jobs'
-        id = Column(Integer, primary_key=True)
-        title = Column(String)
-        company = Column(String)
-        location = Column(String)
-
-    class Candidate(Base):
-        __tablename__ = 'candidates'
-        id = Column(Integer, primary_key=True)
-        nom = Column(String)
-        email = Column(String)
-        compétences = Column(String)
-        expérience = Column(Integer)
-        localisation = Column(String)
-        secteur = Column(String)
-
-    class Match(Base):
-        __tablename__ = 'matches'
-        id = Column(Integer, primary_key=True)
-        job_id = Column(Integer, ForeignKey('jobs.id'))
         candidate_id = Column(Integer, ForeignKey('candidates.id'))
         score = Column(Integer)
     ```

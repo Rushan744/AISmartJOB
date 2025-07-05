@@ -44,7 +44,8 @@ class Match(Base):
     candidate_id = Column(Integer, ForeignKey('candidates.id'))
     score = Column(Integer)
 
-engine = create_engine('sqlite:///emploi.db')
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///emploi.db")
+engine = create_engine(DATABASE_URL)
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 session = Session()

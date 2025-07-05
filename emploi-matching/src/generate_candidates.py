@@ -18,7 +18,7 @@ def generate_candidate():
 def generate_candidates_csv(num_candidates=10):
     candidates = [generate_candidate() for _ in range(num_candidates)]
     df = pd.DataFrame(candidates)
-    df.to_csv('../data/candidats.csv', index=False)
+    df.to_csv('data/candidats.csv', index=False)
 
 if __name__ == '__main__':
     generate_candidates_csv()

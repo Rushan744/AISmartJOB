@@ -87,7 +87,9 @@ class CVRecommendationResponse(BaseModel):
     recommended_jobs: List[Job]
     career_recommendation_text: str
 
-engine = create_engine('sqlite:///emploi.db')
+import os
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///emploi.db")
+engine = create_engine(DATABASE_URL)
 Base.metadata.create_all(engine)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

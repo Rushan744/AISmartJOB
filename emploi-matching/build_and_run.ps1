@@ -1,12 +1,12 @@
 $IMAGE_NAME = "emploi-matching"
 $CONTAINER_NAME = "emploi-matching-app"
 
+Write-Host "Installing Python dependencies on host..."
 Write-Host "Stopping and removing existing container (if any)..."
 docker stop $CONTAINER_NAME  | Out-Null
 docker rm $CONTAINER_NAME  | Out-Null
 
 Write-Host "Removing existing Docker image (if any)..."
-docker rmi -f $IMAGE_NAME  | Out-Null
 
 Write-Host "Building Docker image: $IMAGE_NAME"
 docker build -t $IMAGE_NAME .

@@ -1,5 +1,6 @@
-from fastapi import FastAPI, Depends, HTTPException, APIRouter, UploadFile, File, status
+from fastapi import FastAPI, Depends, HTTPException, APIRouter, UploadFile, File, status, Request
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 from sqlalchemy.orm import sessionmaker, Session, declarative_base
 from typing import List
@@ -9,6 +10,7 @@ from .pdf_extractor import extract_text_from_pdf
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from passlib.context import CryptContext
+
 
 # Database setup
 Base = declarative_base()
@@ -103,6 +105,21 @@ def get_db():
         db.close()
 
 app = FastAPI()
+
+origins = [
+    "http://localhost",
+    "http://localhost:8000",
+    "http://127.0.0.1",
+    "http://127.0.0.1:8000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 

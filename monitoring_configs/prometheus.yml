@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s # Fréquence à laquelle Prometheus va collecter les métriques
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090'] # Prometheus se surveille lui-même
+
+  - job_name: 'api_frontend'
+    # Pour une application réelle, vous utiliseriez probablement une découverte de service
+    # ou des chemins d'endpoints spécifiques. Ici, nous supposons que votre application
+    # peut exposer des métriques à ces endpoints.
+    static_configs:
+      # IMPORTANT : 'host.docker.internal' permet aux conteneurs Docker (sous Windows/macOS)
+      # de se connecter à localhost sur la machine hôte.
+      - targets: ['host.docker.internal:8000']

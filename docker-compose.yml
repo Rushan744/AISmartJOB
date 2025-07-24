@@ -1,0 +1,38 @@
+version: '3.8'
+
+# Déclare les volumes persistants. Docker Compose les créera automatiquement s'ils n'existent pas.
+volumes:
+  grafana_data:
+  prometheus_data:
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090" # Accès à l'interface web de Prometheus
+    volumes:
+      # Monte le volume persistant pour les données de Prometheus
+      - prometheus_data:/prometheus
+      # Monte votre fichier de configuration Prometheus
+      - ./monitoring_configs/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus' # Spécifie le chemin des données
+    restart: unless-stopped # Redémarre le conteneur sauf s'il est arrêté manuellement
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3001:3000" # Accès à l'interface web de Grafana
+    volumes:
+      # Monte le volume persistant pour les données de Grafana (tableaux de bord, utilisateurs, etc.)
+      - grafana_data:/var/lib/grafana
+    environment:
+      # Définition des identifiants admin par défaut. CHANGEZ-LES POUR LA PRODUCTION !
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    restart: unless-stopped
+    depends_on:
+      - prometheus # S'assure que Prometheus démarre avant Grafana

@@ -17,3 +17,17 @@ powershell.exe -File ".\build_and_run.ps1"
 pour avoir la version de mistral:
  ollama show mistral
 
+
+test unitaire:
+ python -m pytest tests/unit/ 
+
+
+
+
+
+
+
+Your FastAPI application should be accessible at http://localhost:8002.
+The AI matching service metrics should be available at http://localhost:8001/metrics.
+Prometheus should be accessible at http://localhost:9090.
+Grafana should be accessible at http://localhost:3001.

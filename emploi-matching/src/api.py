@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, APIRouter, UploadFile, File, status, Request
+from prometheus_fastapi_instrumentator import Instrumentator
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
@@ -105,6 +106,10 @@ def get_db():
         db.close()
 
 app = FastAPI()
+
+instrumentator = Instrumentator()
+instrumentator.instrument(app)
+instrumentator.expose(app, "/metrics")
 
 origins = [
     "http://localhost",

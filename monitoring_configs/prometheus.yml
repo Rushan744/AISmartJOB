@@ -13,4 +13,6 @@ scrape_configs:
     static_configs:
       # IMPORTANT : 'host.docker.internal' permet aux conteneurs Docker (sous Windows/macOS)
       # de se connecter à localhost sur la machine hôte.
-      - targets: ['host.docker.internal:8000']
+      - targets: ['host.docker.internal:8000'] # Assuming your FastAPI app runs on port 8000
+        labels:
+          application: 'fastapi-api'

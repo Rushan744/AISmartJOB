@@ -11,6 +11,8 @@ from .pdf_extractor import extract_text_from_pdf
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from passlib.context import CryptContext
+import mlflow
+import os
 
 
 # Database setup
@@ -90,10 +92,11 @@ class CVRecommendationResponse(BaseModel):
     recommended_jobs: List[Job]
     career_recommendation_text: str
 
-import os
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///emploi.db")
 engine = create_engine(DATABASE_URL)
 Base.metadata.create_all(engine)
+mlflow.set_tracking_uri("http://host.docker.internal:5000")
+print(f"MLflow Tracking URI set to: {mlflow.get_tracking_uri()}")
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -333,13 +336,27 @@ async def extract_skills_from_cv_endpoint(
         if not cv_text.strip():
             raise HTTPException(status_code=400, detail="Impossible d'extraire le texte du PDF. Le PDF pourrait être vide ou basé sur des images.")
 
-        extracted_skills = extract_skills_with_scores_from_cv(cv_text)
-        
+        with mlflow.start_run():
+            # Log input CV text (or a hash/summary to avoid logging large texts)
+            mlflow.log_param("cv_text_length", len(cv_text))
+            # You might want to log a hash of the CV content instead of the full text for privacy/size reasons
+            # import hashlib
+            # mlflow.log_param("cv_content_hash", hashlib.sha256(cv_content).hexdigest())
+
+            extracted_skills = extract_skills_with_scores_from_cv(cv_text)
+            
+            # Log extracted skills as a dictionary or JSON
+            # The extract_skills_with_scores_from_cv function already returns a list of dictionaries
+            mlflow.log_dict({"extracted_skills": extracted_skills}, "extracted_skills.json")
+            mlflow.log_metric("num_extracted_skills", len(extracted_skills))
+
         return SkillsExtractionResponse(extracted_skills=extracted_skills)
 
     except HTTPException as e:
         raise e
     except Exception as e:
+        # Log exceptions to MLflow if a run is active, or just print/log
+        print(f"Error in extract_skills_from_cv_endpoint: {e}")
         raise HTTPException(status_code=500, detail=f"Une erreur interne du serveur s'est produite : {e}")
 
 app.include_router(user_router)

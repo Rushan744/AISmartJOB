@@ -35,6 +35,10 @@ pip-log.txt
 pip-log.txt.*
 pip-delete-this.txt
 
+#mlflow
+mlruns/
+mlartifacts/
+
 # Unit test / coverage reports
 htmlcov/
 .tox/

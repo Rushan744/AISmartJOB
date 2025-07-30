@@ -11,8 +11,7 @@ python-multipart
 passlib[bcrypt]
 pytest
 httpx
-
-
-
 uvicorn
 prometheus-fastapi-instrumentator
+mlflow
+openai

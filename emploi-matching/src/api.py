@@ -73,6 +73,13 @@ class Match(BaseModel):
     candidate_id: int
     score: float
 
+class FeedbackDB(Base):
+    __tablename__ = 'feedback'
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    rating = Column(Integer) # 1 to 5 stars
+    comment = Column(String, nullable=True)
+
 class SkillScore(BaseModel):
     skill: str
     score: int
@@ -91,6 +98,16 @@ class User(BaseModel):
 class CVRecommendationResponse(BaseModel):
     recommended_jobs: List[Job]
     career_recommendation_text: str
+
+class FeedbackCreate(BaseModel):
+    rating: int
+    comment: str = None
+
+class Feedback(BaseModel):
+    id: int
+    user_id: int
+    rating: int
+    comment: str = None
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///emploi.db")
 engine = create_engine(DATABASE_URL)
@@ -128,8 +145,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
 
 # Security
 security = HTTPBasic()
@@ -361,6 +376,33 @@ async def extract_skills_from_cv_endpoint(
 
 app.include_router(user_router)
 app.include_router(ai_router)
+
+# Feedback Endpoints
+@app.post(
+    "/feedback/",
+    response_model=Feedback,
+    summary="Soumettre un feedback",
+    description="Permet à un utilisateur de soumettre un feedback avec une note de 1 à 5 étoiles et un commentaire. Requiert une authentification.",
+    status_code=status.HTTP_201_CREATED,
+    tags=["Feedback"]
+)
+def submit_feedback(
+    feedback: FeedbackCreate,
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_user)
+):
+    if not (1 <= feedback.rating <= 5):
+        raise HTTPException(status_code=400, detail="La note doit être entre 1 et 5 étoiles.")
+    
+    db_feedback = FeedbackDB(
+        user_id=current_user.id,
+        rating=feedback.rating,
+        comment=feedback.comment
+    )
+    db.add(db_feedback)
+    db.commit()
+    db.refresh(db_feedback)
+    return Feedback(id=db_feedback.id, user_id=db_feedback.user_id, rating=db_feedback.rating, comment=db_feedback.comment)
 
 # Serve static files (your frontend)
 app.mount("/static", StaticFiles(directory="frontend"), name="static")

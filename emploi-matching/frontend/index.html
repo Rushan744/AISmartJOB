@@ -28,6 +28,28 @@
         #main-app-section {
             display: none; /* Hidden by default */
         }
+        /* Star rating CSS */
+        #feedback-form .mb-3 div {
+            display: flex;
+            flex-direction: row-reverse;
+            justify-content: flex-end;
+        }
+        #feedback-form input[type="radio"] {
+            display: none;
+        }
+        #feedback-form label {
+            font-size: 2rem;
+            color: #ccc;
+            cursor: pointer;
+            padding: 0 5px;
+        }
+        #feedback-form input[type="radio"]:checked ~ label {
+            color: #ffc107; /* Gold color for selected stars */
+        }
+        #feedback-form label:hover,
+        #feedback-form label:hover ~ label {
+            color: #ffc107;
+        }
     </style>
 </head>
 <body>
@@ -111,6 +133,32 @@
                     <div id="skills-chart">
                         <!-- Le graphique Plotly sera rendu ici -->
                     </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    Donner votre feedback
+                </div>
+                <div class="card-body">
+                    <form id="feedback-form">
+                        <div class="mb-3">
+                            <label for="rating" class="form-label">Note (1-5 étoiles)</label>
+                            <div>
+                                <input type="radio" id="star5" name="rating" value="5" required><label for="star5" title="5 stars">5</label>
+                                <input type="radio" id="star4" name="rating" value="4"><label for="star4" title="4 stars">4</label>
+                                <input type="radio" id="star3" name="rating" value="3"><label for="star3" title="3 stars">3</label>
+                                <input type="radio" id="star2" name="rating" value="2"><label for="star2" title="2 stars">2</label>
+                                <input type="radio" id="star1" name="rating" value="1"><label for="star1" title="1 star">1</label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="comment" class="form-label">Commentaire (optionnel)</label>
+                            <textarea class="form-control" id="comment" rows="3"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary" id="submitFeedbackButton">Soumettre le feedback</button>
+                        <div id="feedback-status" class="mt-3"></div>
+                    </form>
                 </div>
             </div>
         </div>

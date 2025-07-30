@@ -219,6 +219,52 @@ document.addEventListener('DOMContentLoaded', () => {
         Plotly.newPlot('skills-chart', data, layout);
     };
 
+    const feedbackForm = document.getElementById('feedback-form');
+    const submitFeedbackButton = document.getElementById('submitFeedbackButton');
+    const feedbackStatus = document.getElementById('feedback-status');
+
+    submitFeedbackButton.addEventListener('click', async (event) => {
+        event.preventDefault(); // Empêcher le rechargement de la page
+
+        feedbackStatus.innerHTML = ''; // Clear previous status
+
+        const selectedRating = document.querySelector('input[name="rating"]:checked');
+        const comment = document.getElementById('comment').value;
+
+        if (!selectedRating) {
+            feedbackStatus.innerHTML = '<div class="alert alert-warning">Veuillez sélectionner une note.</div>';
+            return;
+        }
+
+        const rating = parseInt(selectedRating.value);
+        console.log('Attempting to submit feedback with:', { rating, comment });
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/feedback/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Basic ${authToken}`
+                },
+                body: JSON.stringify({ rating, comment })
+            });
+
+            console.log('Feedback API response:', response);
+
+            if (response.ok) {
+                feedbackStatus.innerHTML = '<div class="alert alert-success">Feedback soumis avec succès ! Merci.</div>';
+                feedbackForm.reset(); // Reset the form
+            } else {
+                const errorData = await response.json();
+                console.error('Feedback API error data:', errorData);
+                feedbackStatus.innerHTML = `<div class="alert alert-danger">Erreur lors de la soumission du feedback : ${errorData.detail || response.statusText}</div>`;
+            }
+        } catch (error) {
+            console.error('Erreur lors de la soumission du feedback :', error);
+            feedbackStatus.innerHTML = `<div class="alert alert-danger">Une erreur inattendue s'est produite : ${error.message}</div>`;
+        }
+    });
+
     // Vérification initiale au chargement de la page
     checkLoginStatus();
 });

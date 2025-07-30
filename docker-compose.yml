@@ -36,3 +36,14 @@ services:
     restart: unless-stopped
     depends_on:
       - prometheus # S'assure que Prometheus démarre avant Grafana
+
+  emploi-matching-app:
+    build: ./emploi-matching
+    container_name: emploi-matching-app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./emploi-matching/emploi.db:/app/emploi-matching/emploi.db
+    environment:
+      - DATABASE_URL=sqlite:////app/emploi-matching/emploi.db
+    restart: unless-stopped

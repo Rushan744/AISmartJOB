@@ -237,6 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const rating = parseInt(selectedRating.value);
+        console.log('Feedback button clicked!'); // New log
         console.log('Attempting to submit feedback with:', { rating, comment });
 
         try {
@@ -249,7 +250,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ rating, comment })
             });
 
-            console.log('Feedback API response:', response);
+            console.log('Feedback API raw response:', response); // New log
+            console.log('Feedback API response status:', response.status); // New log
+            console.log('Feedback API response statusText:', response.statusText); // New log
 
             if (response.ok) {
                 feedbackStatus.innerHTML = '<div class="alert alert-success">Feedback soumis avec succès ! Merci.</div>';

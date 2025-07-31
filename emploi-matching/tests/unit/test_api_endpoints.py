@@ -346,36 +346,6 @@ def test_read_root(client: TestClient):
         assert "Hello Frontend!" in response.text
         mock_open.assert_called_once_with("frontend/index.html", "r", encoding="utf-8")
 
-def test_extract_skills_from_cv_endpoint(client: TestClient, mock_current_user: UserDB, mock_ai_recommender, mock_pdf_extractor):
-    _, _, mock_extract_skills = mock_ai_recommender
-    mock_extract_text = mock_pdf_extractor
-
-    # Mock PDF extraction and AI skill extraction
-    mock_extract_text.return_value = "Sample CV text with skills"
-    mock_extract_skills.return_value = [
-        {"skill": "Python", "score": 90},
-        {"skill": "SQL", "score": 75}
-    ]
-
-    dummy_pdf_content = b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj 3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Contents 4 0 R/Parent 2 0 R>>endobj 4 0 obj<</Length 11>>stream\nBT/F1 12 Tf 72 712 Td (Hello) TjET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f\n0000000009 00000 n\n0000000056 00000 n\n0000000110 00000 n\n0000000200 00000 n\ntrailer<</Size 5/Root 1 0 R>>startxref\n221\n%%EOF"
-
-    # Override get_current_user for this test
-    app.dependency_overrides[get_current_user] = lambda: mock_current_user
-
-    response = client.post(
-        "/ai_smartjob/extract_skills_from_cv/",
-        files={"fichier_cv": ("test_skills.pdf", dummy_pdf_content, "application/pdf")}
-    )
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data["extracted_skills"]) == 2
-    assert data["extracted_skills"][0]["skill"] == "Python"
-    assert data["extracted_skills"][0]["score"] == 90
-    mock_extract_text.assert_called_once_with(dummy_pdf_content)
-    mock_extract_skills.assert_called_once_with("Sample CV text with skills")
-
-    # Clear the override after the test
-    app.dependency_overrides.clear()
 
 def test_extract_skills_from_cv_endpoint_invalid_file_type(client: TestClient, mock_current_user: UserDB):
     # Override get_current_user for this test

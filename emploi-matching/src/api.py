@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, APIRouter, UploadFile, File, status, Request
 from prometheus_fastapi_instrumentator import Instrumentator
+from prometheus_client import Counter
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
@@ -126,6 +127,13 @@ def get_db():
         db.close()
 
 app = FastAPI()
+
+# Prometheus Metrics
+non_pdf_upload_counter = Counter(
+    "non_pdf_upload_total",
+    "Total number of attempts to upload a non-PDF file",
+    ["endpoint"]
+)
 
 instrumentator = Instrumentator()
 instrumentator.instrument(app)
@@ -296,6 +304,7 @@ async def recommend_jobs_from_cv(
     current_user: UserDB = Depends(get_current_user)
 ):
     if not fichier_cv.filename.endswith('.pdf'):
+        non_pdf_upload_counter.labels(endpoint="/ai_smartjob/recommend_from_cv/").inc()
         raise HTTPException(status_code=400, detail="Seuls les fichiers PDF sont supportés.")
 
     try:
@@ -342,6 +351,7 @@ async def extract_skills_from_cv_endpoint(
     current_user: UserDB = Depends(get_current_user)
 ):
     if not fichier_cv.filename.endswith('.pdf'):
+        non_pdf_upload_counter.labels(endpoint="/ai_smartjob/extract_skills_from_cv/").inc()
         raise HTTPException(status_code=400, detail="Seuls les fichiers PDF sont supportés.")
 
     try:

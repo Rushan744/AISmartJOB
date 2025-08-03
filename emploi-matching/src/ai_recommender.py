@@ -28,7 +28,7 @@ def get_ai_recommendations(candidate_info, all_jobs):
 
     # Construct the prompt for Mistral
     prompt = (
-        f"reponde en français"
+        f"reponde en français "
         f"En tant qu'expert en recrutement, je souhaite obtenir des recommandations de jobs "
         f"pour le candidat suivant : {candidate_name}.\n"
         f"Ses compétences principales sont : {candidate_skills}.\n\n"
@@ -113,7 +113,7 @@ def get_ai_recommendations_from_cv(cv_text: str, all_jobs: list):
 
     # Prompt for job recommendations and career recommendation text
     prompt = (
-        f"reponde en français"
+        f"reponde en français "
         f"En tant qu'expert en recrutement et conseiller d'orientation, j'ai le CV suivant :\n"
         f"```\n{cv_text}\n```\n\n"
         f"Voici la liste des jobs disponibles :\n{job_descriptions}\n\n"
@@ -252,7 +252,7 @@ def extract_skills_with_scores_from_cv(cv_text: str):
         list: A list of dictionaries, each with 'skill' (str) and 'score' (int).
     """
     prompt = (
-        f"reponde en français"
+        f"reponde en français "
         f"En tant qu'expert en analyse de CV, veuillez extraire les 10 compétences clés "
         f"du CV suivant et attribuer un score de pertinence entre 0 et 100 pour chaque compétence. "
         f"Le score doit refléter la force ou la présence de la compétence dans le CV. "

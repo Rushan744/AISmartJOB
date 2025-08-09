@@ -16,8 +16,11 @@
     *   Why Other Popular Models Were Not Chosen
 5.  LLM Parameterization for Optimal Results
     *   System Prompt Design Strategy for Targeted Responses
-6.  Conclusion
-7.  Appendices
+6.  LLM Monitoring
+    *   Monitoring Performance and Response Quality
+    *   User Feedback Collection and Continuous Improvement Cycle
+7.  Conclusion
+8.  Appendices
     *   Appendix 1: LLM Comparative Table
     *   Appendix 2: Conceptual Diagram of Data Flow to the LLM
     *   Appendix 3: Examples of LLM Prompts and Responses
@@ -119,19 +122,37 @@ For the production environment, **GPT-4** was chosen as the primary LLM due to i
 Optimizing LLM parameters is crucial to balance accuracy, response quality, and computational efficiency, ensuring the model behaves predictably and generates high-quality outputs tailored for recruitment tasks.
 
 ### System Prompt Design Strategy for Targeted Responses
-Effective system prompt design is fundamental to guiding the LLM's behavior and ensuring precise, high-quality, and structured outputs. Our strategy incorporates several advanced prompt engineering techniques:
+Effective system prompt design is fundamental to guiding the LLM's behavior and ensuring precise, high-quality, and structured outputs. My strategy incorporates several advanced prompt engineering techniques:
 *   **Role-playing:** Instructing the LLM to adopt a specific persona (e.g., "You are an expert recruiter," or "You are a career advisor") primes the model to generate responses consistent with that role's knowledge and tone.
 *   **Clear Task Definitions:** Explicitly stating the request and desired action (e.g., "extract key skills with proficiency scores," "recommend top 3 matching jobs," "provide reasons for each match") leaves no ambiguity for the LLM.
-*   **Contextual Input with Delimiters:** Providing the candidate CV and job offer data as input context is crucial. We utilize clear delimiters (e.g., XML tags like `<CV_TEXT>` and `<JOB_OFFERS>`, or triple backticks ```` ``` ````) to clearly separate different sections of input, helping the LLM parse and understand the distinct pieces of information.
+*   **Contextual Input with Delimiters:** Providing the candidate CV and job offer data as input context is crucial. I utilize clear delimiters (e.g., XML tags like `<CV_TEXT>` and `<JOB_OFFERS>`, or triple backticks ```` ``` ````) to clearly separate different sections of input, helping the LLM parse and understand the distinct pieces of information.
 *   **Output Format Specifications:** Mandating structured output formats (e.g., JSON for skill extraction, bullet points for recommendations) facilitates easier downstream processing by other system components. This involves instructing the LLM to adhere to a specific schema.
 *   **Constraint Enforcement:** Including instructions to avoid irrelevant content, maintain focus on the core task, and adhere to specific length limits helps prune unnecessary verbosity and ensures the output remains highly relevant.
 
 This comprehensive approach ensures precise, high-quality, and structured LLM outputs tailored specifically for the recruitment tasks, minimizing post-processing efforts and maximizing system efficiency.
 
-## 6. Conclusion
-The "Job Matching" project successfully leverages the power of Large Language Models to solve critical inefficiencies in recruitment. By focusing on deep semantic understanding and intelligent matching, the system significantly enhances both recruiter efficiency and candidate experience, moving beyond traditional keyword-based approaches. The careful selection of LLMs—Mistral for cost-effective and privacy-compliant local development, and GPT-4 for its unmatched performance and scalability in production—balances diverse operational requirements. Thoughtful parameterization and advanced prompt engineering strategies maximize output quality and ensure predictable model behavior. This project exemplifies the practical and impactful application of cutting-edge AI to real-world challenges in talent acquisition, demonstrating a robust and intelligent solution for the modern job market.
+## 6. LLM Monitoring
+Maintaining service reliability and quality involves comprehensive monitoring and feedback integration, ensuring the system's robustness and user satisfaction.
 
-## 7. Appendices
+### Monitoring Performance and Response Quality
+My monitoring strategy focuses on key performance indicators (KPIs) and operational metrics:
+*   **Logs Capture:** Detailed logs record every LLM interaction, including input prompts, full LLM responses, processing latency, and any errors encountered. This allows for post-hoc analysis and debugging.
+*   **Response Duration Monitoring:** I specifically track the end-to-end duration of LLM responses, from the moment a request is sent to the LLM until a complete response is received. This metric is crucial for identifying performance bottlenecks and ensuring the system meets its latency requirements for real-time matching.
+*   **Usage Pattern Analysis:** Analyzing usage patterns helps optimize resource allocation and predict future capacity needs.
+*   **Real-time Metrics:** I utilize tools like Prometheus to track real-time metrics such as API latency, error rates, token usage, and resource consumption (CPU, memory) of the LLM service.
+*   **Input Validation and Format Monitoring:** Beyond performance, I monitor the format and integrity of input data (e.g., CV PDFs, job offer texts). This includes tracking successful vs. failed PDF extractions, identifying malformed input files, and ensuring that the pre-processing layer consistently delivers data in the expected format to the LLM. Anomalies in input quality or processing failures are logged.
+
+### User Feedback and Continuous Improvement Cycle
+User feedback is a vital component of my continuous improvement strategy:
+*   **Integrated Frontend Feedback Mechanism:** The system includes a mechanism within the user interface for recruiters and candidates to provide direct feedback on job recommendations, career insights, and overall matching quality.
+*   **Regular Feedback Review:** Collected feedback is regularly reviewed  to identify inaccuracies, areas for enhancement, and emerging user needs.
+*   **Iterative Refinement:** This feedback directly informs iterative prompt refinement, and potential model updates or fine-tuning efforts.
+*   **Benchmarking:** Regular benchmarking with curated datasets ensures ongoing quality assurance and validates the effectiveness of improvements.
+
+## 7. Conclusion
+The "Job Matching" project successfully leverages the power of Large Language Models to solve critical inefficiencies in recruitment. By focusing on deep semantic understanding and intelligent matching, the system significantly enhances both recruiter efficiency and candidate experience, moving beyond traditional keyword-based approaches. The careful selection of LLMs—Mistral for cost-effective and privacy-compliant local development, and GPT-4 for its unmatched performance and scalability in production—balances diverse operational requirements. Thoughtful parameterization and advanced prompt engineering strategies maximize output quality and ensure predictable model behavior. Comprehensive monitoring, including response duration and input format validation, coupled with a robust user feedback loop, ensures continuous service improvement and reliability. This project exemplifies the practical and impactful application of cutting-edge AI to real-world challenges in talent acquisition, demonstrating a robust and intelligent solution for the modern job market.
+
+## 8. Appendices
 
 ### Appendix 1: LLM Comparative Table
 | Model        | Reasoning | Speed    | Cost        | Local Integration | Natural Explanation | Project Choice             | Model Architecture |

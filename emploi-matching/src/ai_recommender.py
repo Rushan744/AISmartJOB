@@ -28,7 +28,7 @@ def get_ai_recommendations(candidate_info, all_jobs):
 
     # Construct the prompt for Mistral
     prompt = (
-        f"reponde en français "
+        f"reponde en français"
         f"En tant qu'expert en recrutement, je souhaite obtenir des recommandations de jobs "
         f"pour le candidat suivant : {candidate_name}.\n"
         f"Ses compétences principales sont : {candidate_skills}.\n\n"

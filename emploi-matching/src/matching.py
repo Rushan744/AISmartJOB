@@ -59,7 +59,7 @@ def match_job_to_candidate(job, candidate):
         generated_text = result.get('response', '').strip()
         print(f"Generated text from Mistral (matching): {generated_text}")
         
-        # Attempt to extract a numerical score using regex
+        # extract a numerical score using regex
         import re
         score_match = re.search(r'(\d+(\.\d+)?)', generated_text)
         if score_match:

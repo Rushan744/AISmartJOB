@@ -11,9 +11,9 @@ from generate_candidates import generate_candidates_csv
 
 load_dotenv()
 
-MONGO_URI = "mongodb://localhost:27017/"  # Replace with your MongoDB URI
+MONGO_URI = "mongodb://localhost:27017/" 
 client = pymongo.MongoClient(MONGO_URI)
-db = client["emploi_matching"]  # Replace with your database name
+db = client["emploi_matching"]  
 jobs_collection = db["adzuna_jobs"]
 
 # Database setup

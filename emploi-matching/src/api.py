@@ -364,7 +364,7 @@ async def extract_skills_from_cv_endpoint(
         with mlflow.start_run():
             # Log input CV text (or a hash/summary to avoid logging large texts)
             mlflow.log_param("cv_text_length", len(cv_text))
-            # You might want to log a hash of the CV content instead of the full text for privacy/size reasons
+            
             # import hashlib
             # mlflow.log_param("cv_content_hash", hashlib.sha256(cv_content).hexdigest())
 

@@ -4,9 +4,9 @@ from unittest.mock import MagicMock, patch
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
-from sqlalchemy.ext.declarative import declarative_base # Import declarative_base
+from sqlalchemy.ext.declarative import declarative_base 
 
-# Import the FastAPI app and database models from your api.py
+# Import the FastAPI app and database models from api.py
 from src.api import app, get_db, UserDB, JobDB, CandidateDB, MatchDB, get_password_hash, verify_password, get_user, get_current_user
 from src.api import Job, Candidate, Match, SkillScore, SkillsExtractionResponse, UserCreate, User, CVRecommendationResponse
 from src.api import Base # Import Base for metadata operations

@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const skillsError = document.getElementById('skills-error');
     const skillsChart = document.getElementById('skills-chart');
 
-    const API_BASE_URL = 'http://127.0.0.1:8000'; // Ajustez si votre FastAPI s'exécute sur un port/hôte différent
+    const API_BASE_URL = 'http://127.0.0.1:8000'; 
 
     let authToken = localStorage.getItem('authToken');
 

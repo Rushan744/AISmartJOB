@@ -23,14 +23,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const API_BASE_URL = 'http://127.0.0.1:8000'; 
 
     let authToken = localStorage.getItem('authToken');
+    const logoutButton = document.getElementById('logout-button');
+
+    // Function to clear all displayed data
+    const clearAllDisplayData = () => {
+        jobRecommendationsTableBody.innerHTML = '';
+        careerRecommendationText.innerHTML = '';
+        // Clear Plotly chart if it exists
+        if (skillsChart.data) { // Check if Plotly chart is initialized
+            Plotly.purge(skillsChart);
+        }
+        skillsChart.innerHTML = ''; // Also clear the div content
+        uploadStatus.innerHTML = '';
+        feedbackStatus.innerHTML = '';
+        recommendationsError.classList.add('d-none');
+        skillsError.classList.add('d-none');
+        loginError.classList.add('d-none'); // Clear login errors too
+        cvFile.value = ''; // Clear the file input
+    };
 
     const checkLoginStatus = () => {
         if (authToken) {
             loginSection.style.display = 'none';
             mainAppSection.style.display = 'block';
+            clearAllDisplayData(); // Clear data when a new user logs in
         } else {
             loginSection.style.display = 'block';
             mainAppSection.style.display = 'none';
+            clearAllDisplayData(); // Clear all data when logged out
         }
     };
 
@@ -40,8 +60,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const credentials = btoa(`${username}:${password}`); // Encodage Base64
 
         try {
-            // Tenter de se connecter en récupérant les données utilisateur (nécessite une authentification)
-            const loginResponse = await fetch(`${API_BASE_URL}/users/`, {
+            // Tenter de se connecter en récupérant les données d'emploi (nécessite une authentification générale)
+            const loginResponse = await fetch(`${API_BASE_URL}/jobs/`, {
                 method: 'GET',
                 headers: {
                     'accept': 'application/json',
@@ -55,30 +75,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 checkLoginStatus();
                 loginError.classList.add('d-none');
             } else if (loginResponse.status === 401) {
-                // Si la connexion échoue (401 Non autorisé), essayer de créer l'utilisateur
-                const createUserResponse = await fetch(`${API_BASE_URL}/users/`, {
-                    method: 'POST',
-                    headers: {
-                        'accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ username, password })
-                });
-
-                if (createUserResponse.ok) {
-                    // Utilisateur créé avec succès, maintenant se connecter
-                    authToken = credentials;
-                    localStorage.setItem('authToken', authToken);
-                    checkLoginStatus();
-                    loginError.classList.add('d-none');
-                } else {
-                    const errorData = await createUserResponse.json();
-                    loginError.textContent = errorData.detail || 'Échec de la création de l\'utilisateur.';
-                    loginError.classList.remove('d-none');
-                }
+                loginError.textContent = 'Nom d\'utilisateur ou mot de passe incorrect.';
+                loginError.classList.remove('d-none');
             } else {
                 const errorData = await loginResponse.json();
-                loginError.textContent = errorData.detail || 'Échec de la connexion.';
+                loginError.textContent = errorData.detail || 'Échec de la connexion. Veuillez réessayer.';
                 loginError.classList.remove('d-none');
             }
         } catch (error) {
@@ -266,6 +267,18 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Erreur lors de la soumission du feedback :', error);
             feedbackStatus.innerHTML = `<div class="alert alert-danger">Une erreur inattendue s'est produite : ${error.message}</div>`;
         }
+    });
+
+    // Logout functionality
+    logoutButton.addEventListener('click', () => {
+        authToken = null;
+        localStorage.removeItem('authToken');
+        checkLoginStatus();
+        // Clear any displayed errors on logout
+        loginError.classList.add('d-none');
+        // Optionally clear input fields
+        usernameInput.value = '';
+        passwordInput.value = '';
     });
 
     // Vérification initiale au chargement de la page

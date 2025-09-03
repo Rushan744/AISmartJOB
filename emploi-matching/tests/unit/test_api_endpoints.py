@@ -27,6 +27,12 @@ def db_session_fixture():
     Base.metadata.create_all(bind=engine)
     db = TestingSessionLocal()
     try:
+        # Create an admin user for tests that require it
+        admin_password_hash = get_password_hash("adminpassword")
+        admin_user = UserDB(username="admin", hashed_password=admin_password_hash)
+        db.add(admin_user)
+        db.commit()
+        db.refresh(admin_user)
         yield db
     finally:
         db.close()
@@ -68,6 +74,10 @@ def mock_pdf_extractor():
 
 # Test for User Management Endpoints
 def test_create_user(client: TestClient, db_session: Session):
+    # Override get_current_user to simulate an authenticated admin
+    admin_user = db_session.query(UserDB).filter(UserDB.username == "admin").first()
+    app.dependency_overrides[get_current_user] = lambda: admin_user
+
     response = client.post(
         "/users/",
         json={"username": "testuser", "password": "testpassword"}
@@ -81,9 +91,13 @@ def test_create_user(client: TestClient, db_session: Session):
     user_in_db = db_session.query(UserDB).filter(UserDB.username == "testuser").first()
     assert user_in_db is not None
     assert verify_password("testpassword", user_in_db.hashed_password)
+    app.dependency_overrides.clear() # Clear override after test
 
 def test_create_user_existing_username(client: TestClient, db_session: Session):
-    # Create a user first
+    # Create a user first (as admin)
+    admin_user = db_session.query(UserDB).filter(UserDB.username == "admin").first()
+    app.dependency_overrides[get_current_user] = lambda: admin_user
+
     hashed_password = get_password_hash("existingpass")
     db_session.add(UserDB(username="existinguser", hashed_password=hashed_password))
     db_session.commit()
@@ -94,6 +108,7 @@ def test_create_user_existing_username(client: TestClient, db_session: Session):
     )
     assert response.status_code == 400
     assert response.json()["detail"] == "Username already registered"
+    app.dependency_overrides.clear() # Clear override after test
 
 # Test for ETL Endpoints
 @pytest.fixture
@@ -439,7 +454,10 @@ def test_read_users_non_admin_access(client: TestClient, mock_current_user: User
     app.dependency_overrides.clear()
 
 def test_read_users_unauthenticated(client: TestClient):
+    # No override is needed here; the client should make an unauthenticated request
+    # and the get_current_user dependency in src/api.py will handle the 401.
     response = client.get("/users/")
     assert response.status_code == 401
     assert "detail" in response.json()
     assert response.json()["detail"] == "Not authenticated"
+    # No app.dependency_overrides.clear() needed as no override was set

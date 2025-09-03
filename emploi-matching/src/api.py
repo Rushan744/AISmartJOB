@@ -216,11 +216,13 @@ user_router = APIRouter(prefix="/users", tags=["User Management"])
 @user_router.post(
     "/",
     response_model=User,
-    summary="Créer un nouvel utilisateur",
-    description="Enregistre un nouvel utilisateur avec un nom d'utilisateur et un mot de passe haché. Accessible à tous.",
+    summary="Créer un nouvel utilisateur (Admin uniquement)",
+    description="Enregistre un nouvel utilisateur avec un nom d'utilisateur et un mot de passe haché. Requiert une authentification (administrateur uniquement).",
     status_code=status.HTTP_201_CREATED
 )
-def create_user(user: UserCreate, db: Session = Depends(get_db)):
+def create_user(user: UserCreate, db: Session = Depends(get_db), current_user: UserDB = Depends(get_current_user)):
+    if current_user.username != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admin can create new users")
     db_user = get_user(db, username=user.username)
     if db_user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already registered")

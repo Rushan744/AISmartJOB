@@ -4,12 +4,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+ADZUNA_APP_ID = os.getenv('ADZUNA_APP_ID') 
 ADZUNA_API_KEY = os.getenv('ADZUNA_API_KEY')
 ADZUNA_API_URL = 'https://api.adzuna.com/v1/api/jobs/fr/search/1'
 
 def get_adzuna_jobs(what, where, results_per_page=10):
     params = {
-        'app_id': '0dce7689',
+        'app_id': ADZUNA_APP_ID,
         'app_key': ADZUNA_API_KEY,
         'what': what,
         'where': where,

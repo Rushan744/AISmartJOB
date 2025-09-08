@@ -67,14 +67,9 @@ OLLAMA_API_URL="http://localhost:11434/api/generate" # URL par défaut de l'API 
 DATABASE_URL="sqlite:///emploi.db" # Ou votre URL de base de données compatible SQLAlchemy préférée
 ```
 
-### 5. Exécuter MongoDB (avec Docker Compose)
+### 5. Exécuter MongoDB
 
-Le projet utilise MongoDB pour stocker les données d'emploi Adzuna. Vous pouvez l'exécuter en utilisant Docker Compose :
-
-```bash
-docker-compose up -d mongodb
-```
-Cela démarrera une instance MongoDB accessible à `mongodb://localhost:27017/`.
+Le projet utilise MongoDB pour stocker les données d'emploi Adzuna. Vous pouvez l'exécuter en installant MongoDB localement et en démarrant le service 
 
 ### 6. Initialiser les Données
 
@@ -83,13 +78,13 @@ Exécutez le script `main.py` pour générer des données de candidats factices,
 ```bash
 python src/main.py
 ```
-Cette étape effacera et remplira également les tables `jobs` et `candidates` dans `emploi.db` et la collection `adzuna_jobs` dans MongoDB.
+Cette étape effacera et remplira également les tables `jobs` et `candidates` dans `emploi.db`.
 
 ## Exécution de l'Application
 
 ### 1. Exécuter l'Application Complète avec Docker Compose
 
-Pour une configuration complète incluant le backend FastAPI, MongoDB et le frontend, vous pouvez utiliser Docker Compose. Naviguez vers le répertoire `emploi-matching/` et exécutez :
+Pour une configuration complète incluant le backend FastAPI, Prometheus, Grafana et le frontend, naviguez vers le répertoire `emploi-matching/` et exécutez :
 
 ```bash
 docker compose up --build -d
@@ -106,12 +101,12 @@ http://127.0.0.1:8000/
 
 Vous serez présenté avec une page de connexion. Vous pouvez utiliser les identifiants par défaut `username: user`, `password: user` ou créer un nouvel utilisateur.
 
-### 3. Démarrer le Backend FastAPI (Alternative/Développement)
+### 3. Exécuter le Backend FastAPI avec Docker
 
-Si vous préférez exécuter le backend FastAPI directement (par exemple, à des fins de développement sans Docker Compose pour le backend), depuis le répertoire `emploi-matching/`, exécutez :
+Si vous préférez exécuter uniquement le backend FastAPI via Docker (sans les autres services définis dans `docker-compose.yml`), depuis le répertoire `emploi-matching/`, exécutez :
 
 ```bash
-uvicorn src.api:app --reload
+docker compose up --build -d emploi-matching-app
 ```
 L'API sera accessible à `http://127.0.0.1:8000`.
 
@@ -134,11 +129,15 @@ L'API sera accessible à `http://127.0.0.1:8000`.
     *   `prometheus.yml` : Configuration Prometheus pour la récupération des métriques de l'application FastAPI.
 *   `tests/` : Contient les tests unitaires et d'intégration pour l'application.
     *   `unit/test_api_endpoints.py` : Exemples de tests unitaires pour les points d'API.
+    *   `integration/` : Contient les tests d'intégration.
 *   `mlruns/` : Répertoire utilisé par MLflow pour stocker les données de suivi des expériences.
 *   `mlartifacts/` : Répertoire utilisé par MLflow pour stocker les artefacts des exécutions.
-*   `docker-compose.yml` : Fichier Docker Compose pour la configuration de MongoDB.
+*   `docker-compose.yml` : Fichier Docker Compose pour la configuration des services Docker (application, Prometheus, Grafana).
 *   `requirements.txt` : Liste toutes les dépendances Python.
 *   `.env.example` : Un modèle pour le fichier des variables d'environnement.
+*   `__init__.py` : Fichier d'initialisation du package Python.
+*   `.gitignore` : Fichier de configuration Git pour ignorer les fichiers non suivis.
+*   `emploi.db` : Base de données SQLite utilisée par l'application.
 *   `build_and_run.ps1` / `build_and_run.sh` : Scripts pour la construction et l'exécution de l'application (PowerShell et Bash).
 
 ## Surveillance et Suivi des Expériences
